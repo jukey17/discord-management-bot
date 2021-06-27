@@ -23,7 +23,7 @@ async def ping(ctx):
 
 @bot.command()
 async def reaction_info(ctx, arg):
-    if ctx.auther.bot:
+    if ctx.author.bot:
         return
 
     result = re.match(split_id_pattern, arg)
