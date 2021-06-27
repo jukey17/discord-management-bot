@@ -34,7 +34,10 @@ async def reaction_info(ctx, arg):
     message_id = result.group(2)
     await ctx.send('channel={0}, message={1}'.format(channel_id, message_id))
 
-    channel = [x for x in ctx.guild.text_channels if x.id == channel_id]
+    channels = [x for x in ctx.guild.text_channels if x.id == channel_id]
+    if len(channels) == 0:
+        return
+    channel =channels[0]
     # channel = ctx.guild.get_channel(channel_id)
     message = await channel.fetch_message(message_id)
     await ctx.send('channel={0}, message={1}'.format(channel.name, message.name))
