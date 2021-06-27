@@ -45,5 +45,9 @@ async def reaction_info(ctx, arg):
     message = await channel.fetch_message(message_id)
     await ctx.send(f'channel={channel.name}, message={message.content}')
 
+    for reaction in message.reactions:
+        async for user in reaction.users():
+            await ctx.send(f'reaction={reaction}, user={user}')
+
 
 bot.run(token)
