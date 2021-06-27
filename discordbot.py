@@ -43,7 +43,7 @@ async def reaction_info(ctx, arg):
     channel = channels[0]
     # channel = ctx.guild.get_channel(channel_id)
     message = await channel.fetch_message(message_id)
-    await ctx.send(f'channel={channel.name}, message={message.name}')
+    await ctx.send(f'channel={channel.name}, message={message.content}')
 
 
 bot.run(token)
