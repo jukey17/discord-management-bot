@@ -30,7 +30,12 @@ async def reaction_info(ctx, arg):
     if not result:
         return
 
-    await ctx.send('channel={0}, message={1}'.format(result.group(1), result.group(2)))
+    channel_id = result.group(1)
+    message_id = result.group(2)
+    await ctx.send('channel={0}, message={1}'.format(channel_id, message_id))
 
+    channel = ctx.guild.get_channel(channel_id)
+    message = await channel.fetch_message(message_id)
+    await ctx.send('channel={0}, message={1}'.format(channel.name, message.name))
 
 bot.run(token)
