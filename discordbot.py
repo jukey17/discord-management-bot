@@ -24,23 +24,26 @@ async def ping(ctx):
 @bot.command()
 async def reaction_info(ctx, arg):
     if ctx.author.bot:
+        await ctx.send('this is bot')
         return
 
     result = re.match(split_id_pattern, arg)
     if not result:
+        await ctx.send("{channel_id}-{message_id}")
         return
 
-    channel_id = result.group(1)
-    message_id = result.group(2)
+    channel_id = int(result.group(1))
+    message_id = int(result.group(2))
     await ctx.send('channel={0}, message={1}'.format(channel_id, message_id))
 
     channels = [x for x in ctx.guild.text_channels if x.id == channel_id]
     if len(channels) == 0:
+        await ctx.send(f'not found channel={channel_id}')
         return
     channel = channels[0]
     # channel = ctx.guild.get_channel(channel_id)
     message = await channel.fetch_message(message_id)
-    await ctx.send('channel={0}, message={1}'.format(channel.name, message.name))
+    await ctx.send(f'channel={channel.name}, message={message.name}')
 
 
 bot.run(token)
