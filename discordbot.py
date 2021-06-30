@@ -1,4 +1,5 @@
 from discord.ext import commands
+import copy
 import os
 import re
 import traceback
@@ -29,25 +30,25 @@ async def reaction_info(ctx, arg):
 
     result = re.match(split_id_pattern, arg)
     if not result:
-        await ctx.send("{channel_id}-{message_id}")
+        await ctx.send("please format is /reaction_info {channel_id}-{message_id}")
         return
 
     channel_id = int(result.group(1))
     message_id = int(result.group(2))
-    await ctx.send('channel={0}, message={1}'.format(channel_id, message_id))
 
-    # channels = [x for x in ctx.guild.text_channels if x.id == channel_id]
-    # if len(channels) == 0:
-    #     await ctx.send(f'not found channel={channel_id}')
-    #     return
-    # channel = channels[0]
-    channel = ctx.guild.get_channel(channel_id)
+    guild = ctx.guild
+    channel = guild.get_channel(channel_id)
     message = await channel.fetch_message(message_id)
     await ctx.send(f'channel={channel.name}, message={message.content}')
 
-    for reaction in message.reactions:
-        async for user in reaction.users():
-            await ctx.send(f'reaction={reaction}, user={user}')
+    members = copy.copy(guild.members)
+    for member in guild.members:
+        for reaction in message.reactions:
+            async for user in reaction.users():
+                if member.id == user.id:
+                    members.remove(member)
+                    await ctx.send(f'reaction={reaction}, user={user}')
 
-
+    for member in members:
+        await ctx.send(f'no reaction={member}')
 bot.run(token)
