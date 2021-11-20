@@ -18,11 +18,6 @@ async def on_command_error(ctx, error):
 
 
 @bot.command()
-async def ping(ctx):
-    await ctx.send('pong')
-
-
-@bot.command()
 async def reaction_info(ctx, arg):
     if ctx.author.bot:
         await ctx.send('this is bot')
