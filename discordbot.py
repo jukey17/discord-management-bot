@@ -53,7 +53,7 @@ async def reaction_info(ctx, arg):
         await ctx.send(f'no reaction={member}')
 
 @bot.command()
-async def get_message_count(ctx, arg):
+async def get_message_count(ctx):
     if ctx.author.bot:
         await ctx.send('this is bot')
         return
