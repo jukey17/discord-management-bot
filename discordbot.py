@@ -7,8 +7,13 @@ import traceback
 bot = commands.Bot(command_prefix='/')
 token = os.environ['DISCORD_BOT_TOKEN']
 
-split_id_pattern = '(\d+)-(\d+)'
+split_id_pattern = r"(\d+) (\d+)"
 
+
+class ReactionInfo:
+    def __init__(self, reaction, user):
+        self.reaction = reaction
+        self.user = user
 
 @bot.event
 async def on_command_error(ctx, error):
@@ -25,7 +30,7 @@ async def reaction_info(ctx, arg):
 
     result = re.match(split_id_pattern, arg)
     if not result:
-        await ctx.send("please format is /reaction_info {channel_id}-{message_id}")
+        await ctx.send("please format is /reaction_info {channel_id} {message_id}")
         return
 
     channel_id = int(result.group(1))
@@ -46,4 +51,14 @@ async def reaction_info(ctx, arg):
 
     for member in members:
         await ctx.send(f'no reaction={member}')
+
+@bot.command()
+async def get_message_count(ctx, arg):
+    if ctx.author.bot:
+        await ctx.send('this is bot')
+        return
+
+    async for entry in ctx.guild.audit_logs(limit=None, user=ctx.author):
+        await ctx.send(f'entry={entry}')
+
 bot.run(token)
