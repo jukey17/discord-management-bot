@@ -58,7 +58,7 @@ async def get_message_count(ctx):
         await ctx.send('this is bot')
         return
 
-    async for entry in ctx.guild.audit_logs(limit=None, user=ctx.author):
+    async for entry in ctx.guild.audit_logs():
         await ctx.send(f'entry={entry}')
 
 bot.run(token)
