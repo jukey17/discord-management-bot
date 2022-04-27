@@ -48,12 +48,12 @@ async def on_command_error(ctx, error):
 @bot.command()
 async def reaction_info(ctx, *args):
 
-    print(f'check author is bot, author={ctx.author}')
+    print(f'check author is bot: author={ctx.author}')
     if ctx.author.bot:
         await ctx.send('this is bot')
         return
 
-    print(f'check arguments, {args}')
+    print(f'check arguments: {args}')
     if len(args) < 2:
         await ctx.send('command format is /reaction_info channel={channel_id} message={message_id}')
         return
@@ -68,8 +68,8 @@ async def reaction_info(ctx, *args):
         await ctx.send('not found message_id')
         return
 
-    print(f'fetch channel, ' + parsed['channel'])
     channel_id = int(parsed['channel'])
+    print(f'fetch channel: {channel_id}')
     channel = ctx.guild.get_channel(channel_id)
 
     if channel is None:
@@ -80,8 +80,8 @@ async def reaction_info(ctx, *args):
         await ctx.send(f'not TextChannel, channel={channel.name}, type={channel.type}')
         return
 
-    print(f'fetch message, ' + parsed['message'])
     message_id = int(parsed['message'])
+    print(f'fetch message: {message_id}')
     message = await channel.fetch_message(message_id)
 
     if message is None:
@@ -94,10 +94,9 @@ async def reaction_info(ctx, *args):
         members = [member for member in ctx.guild.members if not member.bot]
     no_reaction_members = copy.copy(members)
 
-    print(f'count reactions.')
     for reaction in message.reactions:
         users = [user async for user in reaction.users()]
-        print(f'count reaction. {reaction}')
+        print(f'count reaction: {reaction}')
         for member in members:
             for user in users:
                 if member.id == user.id:
@@ -105,7 +104,7 @@ async def reaction_info(ctx, *args):
                         if member in no_reaction_members:
                             no_reaction_members.remove(member)
 
-    print(f'output result.')
+    print('output result')
     result = [f'"{channel.name} - {message.content}" reactions']
     for reaction in message.reactions:
         users = []
@@ -121,7 +120,7 @@ async def reaction_info(ctx, *args):
 @bot.command()
 async def message_count(ctx, *args):
 
-    print(f'check author is bot, author={ctx.author}')
+    print(f'check author is bot: author={ctx.author}')
     if ctx.author.bot:
         await ctx.send('this is bot')
         return
@@ -141,8 +140,8 @@ async def message_count(ctx, *args):
     members = [member for member in ctx.guild.members if not member.bot]
     message_counters = [MessageCounter(member) for member in members]
 
-    print(f'fetch channel, ' + parsed['channel'])
     channel_id = int(parsed['channel'])
+    print(f'fetch channel: {channel_id}')
     channel = ctx.guild.get_channel(channel_id)
 
     if channel is None:
@@ -153,14 +152,14 @@ async def message_count(ctx, *args):
         await ctx.send(f'not TextChannel, channel={channel.name}, type={channel.type}')
         return
 
-    print(f'count from history, after=' + parsed['after'] + ", before=" + parsed['before'])
     before = datetime.datetime.strptime(parsed['before'], '%Y-%m-%d')
     after = datetime.datetime.strptime(parsed['after'], '%Y-%m-%d')
+    print(f'count from history, after={after} before={before}')
     async for message in channel.history(limit=None, before=before, after=after):
         for counter in message_counters:
             counter.try_increment(message.author)
 
-    print(f'output result.')
+    print('output result')
     result = [f'#{channel.name} {after} ~ {before}']
     for counter in message_counters:
         result.append(f'{counter.user.display_name} : {counter.counter}')
