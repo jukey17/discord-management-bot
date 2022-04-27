@@ -4,13 +4,12 @@
 
 ## 機能
 
-### `/reaction_info channel={channel_id} message={message_id} bot`
+### `/reaction_info message={message_id} bot`
 
 指定のメッセージに誰がどんなリアクションをしたのか、リアクションをしていないのは誰かを返します
 
 | param      | description         | required |
 |------------|---------------------|----------|
-| channel_id | 対象のメッセージがあるチャンネルのID | required |
 | message_id | 対象のメッセージのID         | required |
 | bot        | BOTを含めるのかどうか        | optional |
 
