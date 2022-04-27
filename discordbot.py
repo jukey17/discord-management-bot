@@ -38,6 +38,22 @@ def parse_args(args):
     return parsed
 
 
+async def find_channel(guild, message_id):
+    message = None
+    result = None
+    for channel in guild.channels:
+        if channel.type != ChannelType.text:
+            continue
+        try:
+            message = await channel.fetch_message(message_id)
+        except Exception as e:
+            print(e)
+        if message is not None:
+            result = channel
+            break
+    return result, message
+
+
 @bot.event
 async def on_command_error(ctx, error):
     orig_error = getattr(error, "original", error)
@@ -47,42 +63,30 @@ async def on_command_error(ctx, error):
 
 @bot.command()
 async def reaction_info(ctx, *args):
-
     print(f'check author is bot: author={ctx.author}')
     if ctx.author.bot:
         await ctx.send('this is bot')
         return
 
     print(f'check arguments: {args}')
-    if len(args) < 2:
-        await ctx.send('command format is /reaction_info channel={channel_id} message={message_id}')
+    if len(args) < 1:
+        await ctx.send('command format is /reaction_info message={message_id}')
         return
 
     parsed = parse_args(args)
-
-    if 'channel' not in parsed:
-        await ctx.send('not found channel_id')
-        return
 
     if 'message' not in parsed:
         await ctx.send('not found message_id')
         return
 
-    channel_id = int(parsed['channel'])
-    print(f'fetch channel: {channel_id}')
-    channel = ctx.guild.get_channel(channel_id)
-
-    if channel is None:
-        await ctx.send(f'not found channel, id={channel_id}')
-        return
-
-    if channel.type != ChannelType.text:
-        await ctx.send(f'not TextChannel, channel={channel.name}, type={channel.type}')
-        return
-
     message_id = int(parsed['message'])
     print(f'fetch message: {message_id}')
+    channel, message = await find_channel(ctx.guild, message_id)
     message = await channel.fetch_message(message_id)
+
+    if channel is None:
+        await ctx.send(f'not found channel, message_id={message_id}')
+        return
 
     if message is None:
         await ctx.send(f'not found message, id={message_id}')
@@ -119,7 +123,6 @@ async def reaction_info(ctx, *args):
 
 @bot.command()
 async def message_count(ctx, *args):
-
     print(f'check author is bot: author={ctx.author}')
     if ctx.author.bot:
         await ctx.send('this is bot')
