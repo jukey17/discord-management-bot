@@ -1,36 +1,25 @@
-# discordpy-startup
+# discord-management-bot
 
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 
-- Herokuでdiscord.pyを始めるテンプレートです。
-- Use Template からご利用ください。
-- 使い方はこちら： [Discord Bot 最速チュートリアル【Python&Heroku&GitHub】 - Qiita](https://qiita.com/1ntegrale9/items/aa4b373e8895273875a8)
+## 機能
 
-## 各種ファイル情報
+### `/reaction_info channel={channel_id} message={message_id} bot`
 
-### discordbot.py
-PythonによるDiscordBotのアプリケーションファイルです。
+指定のメッセージに誰がどんなリアクションをしたのか、リアクションをしていないのは誰かを返します
 
-### requirements.txt
-使用しているPythonのライブラリ情報の設定ファイルです。
+| param      | description         | required |
+|------------|---------------------|----------|
+| channel_id | 対象のメッセージがあるチャンネルのID | required |
+| message_id | 対象のメッセージのID         | required |
+| bot        | BOTを含めるのかどうか        | optional |
 
-### Procfile
-Herokuでのプロセス実行コマンドの設定ファイルです。
+### `/message_count channel={channel_id} before={YYYY-mm-dd} after={YYYY-mm-dd}` 
 
-### runtime.txt
-Herokuでの実行環境の設定ファイルです。
+指定のチャンネルで誰が何回発言したのかを返します
 
-### app.json
-Herokuデプロイボタンの設定ファイルです。
-
-### .github/workflows/flake8.yaml
-GitHub Actions による自動構文チェックの設定ファイルです。
-
-### .gitignore
-Git管理が不要なファイル/ディレクトリの設定ファイルです。
-
-### LICENSE
-このリポジトリのコードの権利情報です。MITライセンスの範囲でご自由にご利用ください。
-
-### README.md
-このドキュメントです。
+| param      | description         | required |
+|------------|---------------------|----------|
+| channel_id | 対象のチャンネルのID         | required |
+| before     | この日付より前のメッセージを対象とする | optional |
+| bot        | この日付より後のメッセージを対象とする | optional |
