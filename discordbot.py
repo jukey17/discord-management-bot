@@ -118,7 +118,6 @@ def convert_to_message_count_result(counter_map: dict):
                 results[counter.user.id] = MessageCountResult(counter.user)
             results[counter.user.id].add(channel, counter.count)
 
-    sorted(results, key=)
     return results
 
 
