@@ -1,9 +1,11 @@
 import copy
 import datetime
+import json
 import os
 import re
 import traceback
 
+import discord
 from discord import ChannelType, Intents
 from discord import User
 from discord.ext import commands
@@ -168,6 +170,63 @@ async def message_count(ctx, *args):
         result.append(f'{counter.user.display_name} : {counter.counter}')
 
     await ctx.send("\n".join(result))
+
+
+@bot.command()
+async def download_messages_json(ctx, *args):
+    print(f'check author is bot: author={ctx.author}')
+    if ctx.author.bot:
+        await ctx.send('this is bot')
+        return
+
+    print(f'check arguments, {args}')
+    if len(args) < 1:
+        await ctx.send('command format is /message_count channel={channel_id} '
+                       'options...(before={YYYY-mm-dd} after={YYYY-mm-dd})')
+        return
+
+    parsed = parse_args(args)
+
+    if 'channel' not in parsed:
+        await ctx.send('not found channel_id')
+        return
+
+    members = [member for member in ctx.guild.members if not member.bot]
+
+    channel_id = int(parsed['channel'])
+    print(f'fetch channel: {channel_id}')
+    channel = ctx.guild.get_channel(channel_id)
+
+    if channel is None:
+        await ctx.send(f'not found channel, id={channel_id}')
+        return
+
+    if channel.type != ChannelType.text:
+        await ctx.send(f'not TextChannel, channel={channel.name}, type={channel.type}')
+        return
+
+    before = datetime.datetime.strptime(parsed['before'], '%Y-%m-%d')
+    after = datetime.datetime.strptime(parsed['after'], '%Y-%m-%d')
+    print(f'read messages from history, after={after} before={before}')
+    outputs = []
+    async for message in channel.history(limit=None, before=before, after=after):
+        message_dict = dict(id=message.id, author=message.author.name, display_name=message.author.display_name,
+                            created_at=message.created_at, edited_at=message.edited_at, message=message.content)
+        outputs.append(message_dict)
+
+    def _json_parser(obj):
+        if isinstance(obj, datetime.datetime):
+            return obj.isoformat()
+        else:
+            str(obj)
+
+    print('output messages.json')
+    with open('messages.json', 'w') as file:
+        json.dump(outputs, file, default=_json_parser, indent=2, ensure_ascii=False)
+
+    print('send messages.json')
+    with open('messages.json', 'r') as file:
+        await ctx.send(file=discord.File(file, 'messages.json'))
 
 
 bot.run(token)
