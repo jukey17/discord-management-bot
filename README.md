@@ -22,3 +22,13 @@
 | channel_id | 対象のチャンネルのID         | required |
 | before     | この日付より前のメッセージを対象とする | optional |
 | bot        | この日付より後のメッセージを対象とする | optional |
+
+### `/download_messages_json channel={channel_id} before={YYYY-mm-dd} after={YYYY-mm-dd}` 
+
+指定のチャンネルのメッセージをjsonとして出力します
+
+| param      | description         | required |
+|------------|---------------------|----------|
+| channel_id | 対象のチャンネルのID         | required |
+| before     | この日付より前のメッセージを対象とする | optional |
+| bot        | この日付より後のメッセージを対象とする | optional |
