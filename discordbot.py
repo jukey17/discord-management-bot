@@ -1,5 +1,8 @@
+import contextlib
 import copy
+import csv
 import datetime
+import io
 import json
 import os
 import re
@@ -38,6 +41,13 @@ def parse_args(args):
             parsed[result.group(1)] = result.group(2)
 
     return parsed
+
+
+def parse_json(obj):
+    if isinstance(obj, datetime.datetime):
+        return obj.isoformat()
+    else:
+        str(obj)
 
 
 async def find_channel(guild, message_id):
@@ -164,12 +174,17 @@ async def message_count(ctx, *args):
         for counter in message_counters:
             counter.try_increment(message.author)
 
-    print('output result')
-    result = [f'#{channel.name} {after} ~ {before}']
-    for counter in message_counters:
-        result.append(f'{counter.user.display_name} : {counter.counter}')
+    filename = 'message_counter.csv'
+    print(f'create {filename} buffer')
+    with contextlib.closing(io.StringIO()) as buffer:
+        writer = csv.writer(buffer)
+        writer.writerow(['name', 'count'])
+        for counter in message_counters:
+            writer.writerow([counter.user.display_name, counter.counter])
 
-    await ctx.send("\n".join(result))
+        print(f'send {filename}')
+        buffer.seek(0)
+        await ctx.send(file=discord.File(buffer, filename))
 
 
 @bot.command()
@@ -212,19 +227,14 @@ async def download_messages_json(ctx, *args):
                             created_at=message.created_at, edited_at=message.edited_at, message=message.content)
         outputs.append(message_dict)
 
-    def _json_parser(obj):
-        if isinstance(obj, datetime.datetime):
-            return obj.isoformat()
-        else:
-            str(obj)
+    filename = 'messages.json'
+    print(f'create {filename} buffer')
+    with contextlib.closing(io.StringIO()) as buffer:
+        json.dump(outputs, buffer, default=parse_json, indent=2, ensure_ascii=False)
 
-    print('output messages.json')
-    with open('messages.json', 'w') as file:
-        json.dump(outputs, file, default=_json_parser, indent=2, ensure_ascii=False)
-
-    print('send messages.json')
-    with open('messages.json', 'r') as file:
-        await ctx.send(file=discord.File(file, 'messages.json'))
+        print(f'send {filename}')
+        buffer.seek(0)
+        await ctx.send(file=discord.File(buffer, filename))
 
 
 bot.run(token)
