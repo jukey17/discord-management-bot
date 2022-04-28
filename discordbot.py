@@ -9,8 +9,9 @@ import re
 import traceback
 
 import discord
-from discord import ChannelType, Intents
+from discord import ChannelType, Intents, Guild
 from discord import User
+from discord.abc import GuildChannel
 from discord.ext import commands
 
 intents = Intents.default()
@@ -20,15 +21,37 @@ token = os.environ['DISCORD_BOT_TOKEN']
 
 
 class MessageCounter:
-    def __init__(self, user: User):
+    def __init__(self, user: User, channel: GuildChannel):
         self.user = user
-        self.counter = 0
+        self.channel = channel
+        self.count = 0
+
+    def __str__(self):
+        return f'user=[{self.user}], channel=[{self.channel}], count={self.count}'
 
     def try_increment(self, user: User):
         if self.user.id != user.id:
             return False
-        self.counter += 1
+        self.count += 1
         return True
+
+
+class MessageCountResult:
+    def __init__(self, user: User):
+        self.user = user
+        self.result_map = {}
+
+    def __str__(self):
+        return f'{self.to_dict()}'
+
+    def add(self, channel: GuildChannel, count: int):
+        self.result_map[channel] = count
+
+    def to_dict(self):
+        output = {'user': self.user.display_name}
+        for channel, count in self.result_map.items():
+            output[channel.name] = count
+        return output
 
 
 def parse_args(args):
@@ -64,6 +87,39 @@ async def find_channel(guild, message_id):
             result = channel
             break
     return result, message
+
+
+async def count_messages(guild: Guild, channel_id: int, before: datetime.datetime, after: datetime.datetime):
+    print(f'fetch channel: {channel_id}')
+    channel = guild.get_channel(channel_id)
+
+    if channel is None:
+        raise ValueError(f'not found channel: id={channel_id}')
+
+    if channel.type != ChannelType.text:
+        raise TypeError(f'{channel.name} is not TextChannel: type={channel.type}')
+        return
+
+    message_counters = [MessageCounter(member, channel) for member in guild.members if not member.bot]
+
+    print(f'count from history, after={after} before={before}')
+    async for message in channel.history(limit=None, before=before, after=after):
+        for counter in message_counters:
+            counter.try_increment(message.author)
+
+    return channel, message_counters
+
+
+def convert_to_message_count_result(counter_map: dict):
+    results = {}
+    for channel, message_counters in counter_map.items():
+        for counter in message_counters:
+            if counter.user.id not in results:
+                results[counter.user.id] = MessageCountResult(counter.user)
+            results[counter.user.id].add(channel, counter.count)
+
+    sorted(results, key=)
+    return results
 
 
 @bot.event
@@ -148,39 +204,48 @@ async def message_count(ctx, *args):
 
     parsed = parse_args(args)
 
-    if 'channel' not in parsed:
-        await ctx.send('not found channel_id')
+    if 'channel' in parsed and 'channels' in parsed:
+        await ctx.send('cannot pass both channel and channels parameter to /message_count.')
         return
 
-    channel_id = int(parsed['channel'])
-    print(f'fetch channel: {channel_id}')
-    channel = ctx.guild.get_channel(channel_id)
-
-    if channel is None:
-        await ctx.send(f'not found channel, id={channel_id}')
+    if 'channel' not in parsed and 'channels' not in parsed:
+        await ctx.send('channel or channels parameter must be set.')
         return
 
-    if channel.type != ChannelType.text:
-        await ctx.send(f'not TextChannel, channel={channel.name}, type={channel.type}')
-        return
+    channel_ids = []
+    if 'channel' in parsed:
+        channel_ids.append(int(parsed['channel']))
 
-    members = [member for member in ctx.guild.members if not member.bot]
-    message_counters = [MessageCounter(member) for member in members]
+    if 'channels' in parsed:
+        channel_ids.extend([int(channel_id) for channel_id in parsed['channels'].split(',')])
+    print(f'parse channel_ids, {channel_ids}')
 
-    before = datetime.datetime.strptime(parsed['before'], '%Y-%m-%d')
-    after = datetime.datetime.strptime(parsed['after'], '%Y-%m-%d')
-    print(f'count from history, after={after} before={before}')
-    async for message in channel.history(limit=None, before=before, after=after):
-        for counter in message_counters:
-            counter.try_increment(message.author)
+    before = None
+    if 'before' in parsed:
+        before = datetime.datetime.strptime(parsed['before'], '%Y-%m-%d')
+    after = None
+    if 'after' in parsed:
+        after = datetime.datetime.strptime(parsed['after'], '%Y-%m-%d')
 
-    filename = 'message_counter.csv'
+    result_map = {}
+    for channel_id in channel_ids:
+        try:
+            channel, message_counters = await count_messages(ctx.guild, channel_id, before, after)
+        except Exception as e:
+            await ctx.send(e)
+            return
+        result_map[channel] = message_counters
+    results = convert_to_message_count_result(result_map)
+
+    filename = 'number_of_messages_in_channels.csv'
     print(f'create {filename} buffer')
     with contextlib.closing(io.StringIO()) as buffer:
-        writer = csv.writer(buffer)
-        writer.writerow(['name', 'count'])
-        for counter in message_counters:
-            writer.writerow([counter.user.display_name, counter.counter])
+        fieldnames = ['user']
+        fieldnames.extend([key.name for key in result_map.keys()])
+        writer = csv.DictWriter(buffer, fieldnames)
+        writer.writeheader()
+        for user_id, result in results.items():
+            writer.writerow(result.to_dict())
 
         print(f'send {filename}')
         buffer.seek(0)
