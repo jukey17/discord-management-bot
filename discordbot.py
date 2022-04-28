@@ -142,9 +142,6 @@ async def message_count(ctx, *args):
         await ctx.send('not found channel_id')
         return
 
-    members = [member for member in ctx.guild.members if not member.bot]
-    message_counters = [MessageCounter(member) for member in members]
-
     channel_id = int(parsed['channel'])
     print(f'fetch channel: {channel_id}')
     channel = ctx.guild.get_channel(channel_id)
@@ -156,6 +153,9 @@ async def message_count(ctx, *args):
     if channel.type != ChannelType.text:
         await ctx.send(f'not TextChannel, channel={channel.name}, type={channel.type}')
         return
+
+    members = [member for member in ctx.guild.members if not member.bot]
+    message_counters = [MessageCounter(member) for member in members]
 
     before = datetime.datetime.strptime(parsed['before'], '%Y-%m-%d')
     after = datetime.datetime.strptime(parsed['after'], '%Y-%m-%d')
@@ -190,8 +190,6 @@ async def download_messages_json(ctx, *args):
     if 'channel' not in parsed:
         await ctx.send('not found channel_id')
         return
-
-    members = [member for member in ctx.guild.members if not member.bot]
 
     channel_id = int(parsed['channel'])
     print(f'fetch channel: {channel_id}')
