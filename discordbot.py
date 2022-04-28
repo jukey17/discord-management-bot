@@ -47,7 +47,7 @@ async def find_channel(guild, message_id):
         try:
             message = await channel.fetch_message(message_id)
         except Exception as e:
-            print(e)
+            print(f'channel={channel.name}, exception={e}')
         if message is not None:
             result = channel
             break
