@@ -65,6 +65,20 @@ def parse_args(args):
     return parsed
 
 
+def parse_before_after(args: dict):
+    before = None
+    after = None
+    if 'before' in args:
+        before = datetime.datetime.strptime(args['before'], '%Y-%m-%d')
+    if 'after' in args:
+        after = datetime.datetime.strptime(args['after'], '%Y-%m-%d')
+
+    if after is not None and before is not None and after > before:
+        raise ValueError('before must be a future than after.')
+
+    return before, after
+
+
 def parse_json(obj):
     if isinstance(obj, datetime.datetime):
         return obj.isoformat()
@@ -218,26 +232,16 @@ async def message_count(ctx, *args):
                 channel_ids.extend([int(channel_id) for channel_id in parsed['channels'].split(',')])
         except Exception as e:
             print(e)
-            await ctx.send('can not parse channel_id/channel_ids.')
+            await ctx.send(f'can not parse channel_id/channel_ids: {e}')
             return
 
         print(f'parse channel_ids, {channel_ids}')
 
-        before = None
-        after = None
         try:
-            if 'before' in parsed:
-                before = datetime.datetime.strptime(parsed['before'], '%Y-%m-%d')
-            if 'after' in parsed:
-                after = datetime.datetime.strptime(parsed['after'], '%Y-%m-%d')
+            before, after = parse_before_after(parsed)
         except Exception as e:
             print(e)
-            await ctx.send('can not parse before/after.')
-            return
-
-        if after is not None and before is not None and after > before:
-            print(f'before={before}, after={after}')
-            await ctx.send('before must be a future than after.')
+            await ctx.send(f'can not parse before/after: {e}')
             return
 
         result_map = {}
@@ -301,21 +305,11 @@ async def download_messages_json(ctx, *args):
             await ctx.send(f'{channel.name} is not TextChannel: type={channel.type}')
             return
 
-        before = None
-        after = None
         try:
-            if 'before' in parsed:
-                before = datetime.datetime.strptime(parsed['before'], '%Y-%m-%d')
-            if 'after' in parsed:
-                after = datetime.datetime.strptime(parsed['after'], '%Y-%m-%d')
+            before, after = parse_before_after(parsed)
         except Exception as e:
             print(e)
-            await ctx.send('can not parse before/after.')
-            return
-
-        if after is not None and before is not None and after > before:
-            print(f'before={before}, after={after}')
-            await ctx.send('before must be a future than after.')
+            await ctx.send(f'can not parse before/after: {e}')
             return
 
         print(f'read messages from history, after={after} before={before}')
