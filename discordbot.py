@@ -171,7 +171,7 @@ async def manage_mention_no_reaction_users(ctx, args):
         if 'remove' in args:
             print(f'remove ignore_list: {path}')
             try:
-                with open(path, 'w') as file:
+                with open(path, 'r+') as file:
                     ignore_list = file.readlines()
                     ignore_list.remove(args['remove'])
             except Exception as e:
