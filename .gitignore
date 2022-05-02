@@ -105,3 +105,7 @@ venv.bak/
 
 # Jetbrains PyCharm
 .idea/
+
+# my app
+.temp/
+.ignore_list/
