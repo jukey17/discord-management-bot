@@ -154,8 +154,8 @@ async def manage_mention_no_reaction_users(ctx, args):
             except Exception as e:
                 print(e)
                 await ctx.send(f'failed upload ignore_list: {e}')
-
-            await ctx.send('completed upload ignore_list!')
+            else:
+                await ctx.send('completed upload ignore_list!')
 
         if 'append' in args:
             print(f'append ignore_list: {path}')
@@ -165,8 +165,8 @@ async def manage_mention_no_reaction_users(ctx, args):
             except Exception as e:
                 print(e)
                 await ctx.send(f'failed append ignore_list: {e}')
-
-            await ctx.send('completed append ignore_list!')
+            else:
+                await ctx.send('completed append ignore_list!')
 
         if 'remove' in args:
             print(f'remove ignore_list: {path}')
@@ -177,8 +177,8 @@ async def manage_mention_no_reaction_users(ctx, args):
             except Exception as e:
                 print(e)
                 await ctx.send(f'failed remove ignore_list: {e}')
-
-            await ctx.send('completed remove ignore_list!')
+            else:
+                await ctx.send('completed remove ignore_list!')
 
 
 @bot.event
