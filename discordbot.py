@@ -139,6 +139,7 @@ async def manage_mention_no_reaction_users(ctx, args):
 
     if 'ignore_list' in args:
         path = pathlib.Path(f'./.ignore_list/{ctx.guild.id}')
+        path.mkdir(parents=True, exist_ok=True)
         path.touch(exist_ok=True)
 
         if 'download' in args:
@@ -225,6 +226,7 @@ async def mention_no_reaction_users(ctx, *args):
             return
 
         path = pathlib.Path(f'./.ignore_list/{ctx.guild.id}')
+        path.mkdir(parents=True, exist_ok=True)
         path.touch(exist_ok=True)
         with open(path, 'r') as file:
             ignore_ids = [int(line) for line in file.readlines()]
