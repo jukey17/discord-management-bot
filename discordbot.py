@@ -144,16 +144,6 @@ async def on_command_error(ctx, error):
 
 
 @bot.command()
-async def fetch_spread_sheet(ctx):
-    with build('sheets', 'v4', developerKey=os.environ['GOOGLE_SPREAD_SHEET_API_KEY']) as service:
-        result = service.spreadsheets().values() \
-            .get(spreadsheetId=IGNORE_LIST_SHEET_ID, range=f'{ctx.guild.id}!A1:A100') \
-            .execute()
-        values = list(itertools.chain.from_iterable(result.get('values', [])))
-        await ctx.send(f'values = {values}')
-
-
-@bot.command()
 async def mention_no_reaction_users(ctx, *args):
     print(f'{ctx.command} executor={ctx.author}, channel={ctx.channel}, time={datetime.datetime.now()}')
 
