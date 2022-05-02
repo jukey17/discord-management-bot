@@ -1,11 +1,10 @@
 import contextlib
-import copy
 import csv
 import datetime
 import io
+import itertools
 import json
 import os
-import pathlib
 import re
 import traceback
 
@@ -13,6 +12,9 @@ import discord
 from discord import User, ChannelType, Intents, Guild, Message, File
 from discord.abc import GuildChannel
 from discord.ext import commands
+from googleapiclient.discovery import build
+
+IGNORE_LIST_SHEET_ID = '1JNII0rT6fXl3qMN4FB8y1YwRw9vg6Wz755O_HnXtBmU'
 
 intents = Intents.default()
 intents.members = True
@@ -134,64 +136,6 @@ def convert_to_message_count_result(counter_map: dict):
     return results
 
 
-async def manage_mention_no_reaction_users(ctx, args):
-    print('manage mode')
-
-    if 'ignore_list' in args:
-        path = pathlib.Path(f'./.ignore_list/{ctx.guild.id}')
-        path.touch(exist_ok=True)
-
-        if 'download' in args:
-            print(f'download ignore_list: {path}')
-            with open(path, 'r') as file:
-                await ctx.send(file=File(file, f'ignore_list_{ctx.guild.id}'))
-
-        if 'upload' in args:
-            print(f'upload ignore_list: {path}')
-            try:
-                with open(path, 'w') as file:
-                    ctx.message.attachments[0].save(file)
-            except Exception as e:
-                print(e)
-                await ctx.send(f'failed upload ignore_list: {e}')
-            else:
-                await ctx.send('completed upload ignore_list!')
-
-        if 'append' in args:
-            print(f'append ignore_list: {path}')
-            try:
-                with open(path, 'a') as file:
-                    file.write(args['append'] + '\n')
-            except Exception as e:
-                print(e)
-                await ctx.send(f'failed append ignore_list: {e}')
-            else:
-                await ctx.send('completed append ignore_list!')
-
-        if 'remove' in args:
-            print(f'remove ignore_list: {path}')
-            try:
-                with open(path, 'r+') as file:
-                    ignore_list = file.readlines()
-                    ignore_list.remove(args['remove'])
-            except Exception as e:
-                print(e)
-                await ctx.send(f'failed remove ignore_list: {e}')
-            else:
-                await ctx.send('completed remove ignore_list!')
-
-        if 'show' in args:
-            print(f'show ignore_list: {path}')
-            try:
-                with open(path, 'r') as file:
-                    ignore_list = file.readlines()
-            except Exception as e:
-                print(e)
-                await ctx.send(f'failed show ignore_list: {e}')
-            else:
-                await ctx.send('\n'.join([ctx.guild.get_member(user_id).display_name for user_id in ignore_list]))
-
-
 @bot.event
 async def on_command_error(ctx, error):
     orig_error = getattr(error, "original", error)
@@ -200,11 +144,18 @@ async def on_command_error(ctx, error):
 
 
 @bot.command()
+async def fetch_spread_sheet(ctx):
+    with build('sheets', 'v4', developerKey=os.environ['GOOGLE_SPREAD_SHEET_API_KEY']) as service:
+        result = service.spreadsheets().values() \
+            .get(spreadsheetId=IGNORE_LIST_SHEET_ID, range=f'{ctx.guild.id}!A1:A100') \
+            .execute()
+        values = list(itertools.chain.from_iterable(result.get('values', [])))
+        await ctx.send(f'values = {values}')
+
+
+@bot.command()
 async def mention_no_reaction_users(ctx, *args):
     print(f'{ctx.command} executor={ctx.author}, channel={ctx.channel}, time={datetime.datetime.now()}')
-
-    dir_path = pathlib.Path(f'./.ignore_list')
-    dir_path.mkdir(parents=True, exist_ok=True)
 
     if ctx.author.bot:
         await ctx.send('this is bot')
@@ -212,10 +163,6 @@ async def mention_no_reaction_users(ctx, *args):
 
     async with ctx.typing():
         parsed = parse_args(args)
-
-        if 'manage' in parsed:
-            await manage_mention_no_reaction_users(ctx, parsed)
-            return
 
         if 'message' not in parsed:
             await ctx.send('message parameter must be set.')
@@ -239,14 +186,16 @@ async def mention_no_reaction_users(ctx, *args):
             await ctx.send(f'not found message, id={message_id}')
             return
 
-        path = pathlib.Path(f'./.ignore_list/{ctx.guild.id}')
-        path.touch(exist_ok=True)
-        with open(path, 'r') as file:
-            ignore_ids = [int(line) for line in file.readlines()]
+        with build('sheets', 'v4', developerKey=os.environ['GOOGLE_SPREAD_SHEET_API_KEY']) as service:
+            result = service.spreadsheets().values() \
+                .get(spreadsheetId=IGNORE_LIST_SHEET_ID, range=f'{ctx.guild.id}!A1:A100') \
+                .execute()
+            ignore_ids = list(itertools.chain.from_iterable(result.get('values', [])))
+            ignore_ids = [int(ignore_id) for ignore_id in ignore_ids]
             print(f'read ignore_list: {ignore_ids}')
 
         no_reaction_members = [member for member in channel.members if
-                               not member.bot and member.id not in ignore_ids and message.author.id]
+                               not member.bot and member.id not in ignore_ids and member.id != message.author.id]
         print(f'target users: {[member.display_name for member in no_reaction_members]}')
 
         for reaction in message.reactions:
@@ -266,72 +215,6 @@ async def mention_no_reaction_users(ctx, *args):
 
     print(f'send: {result}')
     await ctx.send(result)
-
-
-@bot.command()
-async def reaction_info(ctx, *args):
-    print(f'command executor={ctx.author}, time={datetime.datetime.now()}')
-    if ctx.author.bot:
-        await ctx.send('this is bot')
-        return
-
-    print(f'check arguments: {args}')
-    if len(args) < 1:
-        await ctx.send('command format is /reaction_info message={message_id}')
-        return
-
-    async with ctx.typing():
-        parsed = parse_args(args)
-
-        if 'message' not in parsed:
-            await ctx.send('message parameter must be set.')
-            return
-
-        try:
-            message_id = int(parsed['message'])
-        except Exception as e:
-            print(e)
-            await ctx.send(f'can not parse message_id. {args}')
-            return
-
-        print(f'fetch message: {message_id}')
-        channel, message = await find_channel(ctx.guild, message_id)
-
-        if channel is None:
-            await ctx.send(f'not found channel, message_id={message_id}')
-            return
-
-        if message is None:
-            await ctx.send(f'not found message, id={message_id}')
-            return
-
-        if 'bot' in parsed:
-            members = ctx.guild.members
-        else:
-            members = [member for member in ctx.guild.members if not member.bot]
-        no_reaction_members = copy.copy(members)
-
-        for reaction in message.reactions:
-            users = [user async for user in reaction.users()]
-            print(f'count reaction: {reaction}')
-            for member in members:
-                if member not in no_reaction_members:
-                    continue
-                for user in users:
-                    if member.id == user.id:
-                        no_reaction_members.remove(member)
-
-        print('output result')
-        result = [f'"{channel.name} - {message.content}" reactions']
-        for reaction in message.reactions:
-            users = []
-            async for user in reaction.users():
-                users.append(user.name)
-            result.append(f'{reaction}: ' + ', '.join(users))
-        if len(no_reaction_members) > 0:
-            result.append('no reaction=' + ', '.join([member.name for member in no_reaction_members]))
-
-    await ctx.send('\n'.join(result))
 
 
 @bot.command()
