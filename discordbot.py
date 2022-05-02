@@ -180,6 +180,17 @@ async def manage_mention_no_reaction_users(ctx, args):
             else:
                 await ctx.send('completed remove ignore_list!')
 
+        if 'show' in args:
+            print(f'show ignore_list: {path}')
+            try:
+                with open(path, 'r') as file:
+                    ignore_list = file.readlines()
+            except Exception as e:
+                print(e)
+                await ctx.send(f'failed show ignore_list: {e}')
+            else:
+                await ctx.send('\n'.join([ctx.guild.get_member(user_id).display_name for user_id in ignore_list]))
+
 
 @bot.event
 async def on_command_error(ctx, error):
