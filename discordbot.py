@@ -5,11 +5,12 @@ import datetime
 import io
 import json
 import os
+import pathlib
 import re
 import traceback
 
 import discord
-from discord import User, ChannelType, Intents, Guild
+from discord import User, ChannelType, Intents, Guild, Message, File
 from discord.abc import GuildChannel
 from discord.ext import commands
 
@@ -86,7 +87,7 @@ def parse_json(obj):
         str(obj)
 
 
-async def find_channel(guild: Guild, message_id: int):
+async def find_channel(guild: Guild, message_id: int) -> (GuildChannel, Message):
     message = None
     result = None
     for channel in guild.channels:
@@ -133,11 +134,122 @@ def convert_to_message_count_result(counter_map: dict):
     return results
 
 
+async def manage_mention_no_reaction_users(ctx, args):
+    print('manage mode')
+
+    if 'ignore_list' in args:
+        path = pathlib.Path(f'./.ignore_list/{ctx.guild.id}')
+        path.touch(exist_ok=True)
+
+        if 'download' in args:
+            print(f'download ignore_list: {path}')
+            with open(path, 'r') as file:
+                await ctx.send(file=File(file, f'ignore_list_{ctx.guild.id}'))
+
+        if 'upload' in args:
+            print(f'upload ignore_list: {path}')
+            try:
+                with open(path, 'w') as file:
+                    ctx.message.attachments[0].save(file)
+            except Exception as e:
+                print(e)
+                await ctx.send(f'failed upload ignore_list: {e}')
+
+            await ctx.send('completed upload ignore_list!')
+
+        if 'append' in args:
+            print(f'append ignore_list: {path}')
+            try:
+                with open(path, 'a') as file:
+                    file.write(args['append'] + '\n')
+            except Exception as e:
+                print(e)
+                await ctx.send(f'failed append ignore_list: {e}')
+
+            await ctx.send('completed append ignore_list!')
+
+        if 'remove' in args:
+            print(f'remove ignore_list: {path}')
+            try:
+                with open(path, 'w') as file:
+                    ignore_list = file.readlines()
+                    ignore_list.remove(args['remove'])
+            except Exception as e:
+                print(e)
+                await ctx.send(f'failed remove ignore_list: {e}')
+
+            await ctx.send('completed remove ignore_list!')
+
+
 @bot.event
 async def on_command_error(ctx, error):
     orig_error = getattr(error, "original", error)
     error_msg = ''.join(traceback.TracebackException.from_exception(orig_error).format())
     await ctx.send(error_msg)
+
+
+@bot.command()
+async def mention_no_reaction_users(ctx, *args):
+    print(f'{ctx.command} executor={ctx.author}, channel={ctx.channel}, time={datetime.datetime.now()}')
+    if ctx.author.bot:
+        await ctx.send('this is bot')
+        return
+
+    async with ctx.typing():
+        parsed = parse_args(args)
+
+        if 'manage' in parsed:
+            await manage_mention_no_reaction_users(ctx, parsed)
+            return
+
+        if 'message' not in parsed:
+            await ctx.send('message parameter must be set.')
+            return
+
+        try:
+            message_id = int(parsed['message'])
+        except Exception as e:
+            print(e)
+            await ctx.send(f'can not parse message_id. {args}')
+            return
+
+        print(f'fetch message: {message_id}')
+        channel, message = await find_channel(ctx.guild, message_id)
+
+        if channel is None:
+            await ctx.send(f'not found channel, message_id={message_id}')
+            return
+
+        if message is None:
+            await ctx.send(f'not found message, id={message_id}')
+            return
+
+        path = pathlib.Path(f'./.ignore_list/{ctx.guild.id}')
+        path.touch(exist_ok=True)
+        with open(path, 'r') as file:
+            ignore_ids = [int(line) for line in file.readlines()]
+            print(f'read ignore_list: {ignore_ids}')
+
+        no_reaction_members = [member for member in channel.members if not member.bot and member.id not in ignore_ids]
+        print(f'target users: {[member.id for member in no_reaction_members]}')
+
+        for reaction in message.reactions:
+            users = [user async for user in reaction.users()]
+            print(f'count reaction: {reaction}')
+            for member in ctx.guild.members:
+                if member not in no_reaction_members:
+                    continue
+                for user in users:
+                    if member.id == user.id:
+                        no_reaction_members.remove(member)
+
+        if len(no_reaction_members) > 0:
+            result = 'no reaction: ' + ', '.join([member.mention for member in no_reaction_members])
+        else:
+            result = 'all member reaction!'
+
+    print(f'send: {result}')
+    await ctx.send(result)
 
 
 @bot.command()
@@ -156,13 +268,18 @@ async def reaction_info(ctx, *args):
         parsed = parse_args(args)
 
         if 'message' not in parsed:
-            await ctx.send('not found message_id')
+            await ctx.send('message parameter must be set.')
             return
 
-        message_id = int(parsed['message'])
+        try:
+            message_id = int(parsed['message'])
+        except Exception as e:
+            print(e)
+            await ctx.send(f'can not parse message_id. {args}')
+            return
+
         print(f'fetch message: {message_id}')
         channel, message = await find_channel(ctx.guild, message_id)
-        message = await channel.fetch_message(message_id)
 
         if channel is None:
             await ctx.send(f'not found channel, message_id={message_id}')
