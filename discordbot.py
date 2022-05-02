@@ -139,7 +139,6 @@ async def manage_mention_no_reaction_users(ctx, args):
 
     if 'ignore_list' in args:
         path = pathlib.Path(f'./.ignore_list/{ctx.guild.id}')
-        path.mkdir(parents=True, exist_ok=True)
         path.touch(exist_ok=True)
 
         if 'download' in args:
@@ -235,8 +234,9 @@ async def mention_no_reaction_users(ctx, *args):
             ignore_ids = [int(line) for line in file.readlines()]
             print(f'read ignore_list: {ignore_ids}')
 
-        no_reaction_members = [member for member in channel.members if not member.bot and member.id not in ignore_ids]
-        print(f'target users: {[member.id for member in no_reaction_members]}')
+        no_reaction_members = [member for member in channel.members if
+                               not member.bot and member.id not in ignore_ids and message.author.id]
+        print(f'target users: {[member.display_name for member in no_reaction_members]}')
 
         for reaction in message.reactions:
             users = [user async for user in reaction.users()]
