@@ -192,6 +192,10 @@ async def on_command_error(ctx, error):
 @bot.command()
 async def mention_no_reaction_users(ctx, *args):
     print(f'{ctx.command} executor={ctx.author}, channel={ctx.channel}, time={datetime.datetime.now()}')
+
+    dir_path = pathlib.Path(f'./.ignore_list')
+    dir_path.mkdir(parents=True, exist_ok=True)
+
     if ctx.author.bot:
         await ctx.send('this is bot')
         return
@@ -226,7 +230,6 @@ async def mention_no_reaction_users(ctx, *args):
             return
 
         path = pathlib.Path(f'./.ignore_list/{ctx.guild.id}')
-        path.mkdir(parents=True, exist_ok=True)
         path.touch(exist_ok=True)
         with open(path, 'r') as file:
             ignore_ids = [int(line) for line in file.readlines()]
