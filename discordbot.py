@@ -7,14 +7,16 @@ import json
 import os
 import re
 import traceback
+import gspread
 
 import discord
 from discord import User, ChannelType, Intents, Guild, Message, File
 from discord.abc import GuildChannel
 from discord.ext import commands
+from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
-IGNORE_LIST_SHEET_ID = '1JNII0rT6fXl3qMN4FB8y1YwRw9vg6Wz755O_HnXtBmU'
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 intents = Intents.default()
 intents.members = True
@@ -54,6 +56,10 @@ class MessageCountResult:
         for channel, count in self.result_map.items():
             output[channel.name] = count
         return output
+
+
+def convert_1d_to_2d(target, columns):
+    return [target[i:i + columns] for i in range(0, len(target), columns)]
 
 
 def parse_args(args):
@@ -136,6 +142,61 @@ def convert_to_message_count_result(counter_map: dict):
     return results
 
 
+async def manage_mention_no_reaction_users(ctx, args):
+    print('manage mode')
+
+    if 'ignore_list' in args:
+        credentials_file = os.environ['GOOGLE_CREDENTIALS_FILE']
+        credentials = service_account.Credentials.from_service_account_file(credentials_file, scopes=SCOPES)
+        client = gspread.authorize(credentials)
+        sheet_id = os.environ['IGNORE_LIST_SHEET_ID']
+        workbook = client.open_by_key(sheet_id)
+        worksheet = workbook.worksheet(str(ctx.guild.id))
+        ignore_ids = worksheet.col_values(1)
+        ignore_users = [ctx.guild.get_member(int(user_id)) for user_id in ignore_ids]
+
+        if 'download' in args:
+            filename = f'ignore_list_{ctx.guild.id}.json'
+            print(f'download ignore_list: sheet_id={sheet_id}, guild={ctx.guild.id}-> {filename}')
+            ignore_dict = [dict(id=user.id, name=user.name, display_name=user.display_name) for user in ignore_users]
+            with contextlib.closing(io.StringIO()) as buffer:
+                json.dump(ignore_dict, buffer, default=parse_json, indent=2, ensure_ascii=False)
+                buffer.seek(0)
+                await ctx.send(file=discord.File(buffer, filename))
+
+        if 'append' in args:
+            append_id = args['append']
+            print(f'append ignore_list: sheet_id={sheet_id}, guild={ctx.guild.id}, user={append_id}')
+            if ctx.guild.get_member(int(append_id)) is None:
+                await ctx.send(f'not found user: id={append_id}')
+                return
+
+            ignore_ids.append(append_id)
+            update_cells = worksheet.range(f'A1:A{len(ignore_ids)}')
+            for i, cell in enumerate(update_cells):
+                cell.value = ignore_ids[i]
+            worksheet.update_cells(update_cells)
+            await ctx.send('completed append ignore_list!')
+
+        if 'remove' in args:
+            remove_id = args['remove']
+            print(f'remove ignore_list: sheet_id={sheet_id}, guild={ctx.guild.id}, user={remove_id}')
+            if remove_id not in ignore_ids:
+                await ctx.send(f'not contains ignore_list: user_id={remove_id}')
+                return
+            ignore_ids.remove(remove_id)
+            ignore_ids.append('')
+            update_cells = worksheet.range(f'A1:A{len(ignore_ids)}')
+            for i, cell in enumerate(update_cells):
+                cell.value = ignore_ids[i]
+            worksheet.update_cells(update_cells)
+            await ctx.send('completed remove ignore_list!')
+
+        if 'show' in args:
+            print(f'show ignore_list: sheet_id={sheet_id}, guild={ctx.guild.id}')
+            await ctx.send('\n'.join([f'{user.display_name} {user.id}' for user in ignore_users]))
+
+
 @bot.event
 async def on_command_error(ctx, error):
     orig_error = getattr(error, "original", error)
@@ -153,6 +214,10 @@ async def mention_no_reaction_users(ctx, *args):
 
     async with ctx.typing():
         parsed = parse_args(args)
+
+        if 'manage' in parsed:
+            await manage_mention_no_reaction_users(ctx, parsed)
+            return
 
         if 'message' not in parsed:
             await ctx.send('message parameter must be set.')
@@ -176,13 +241,15 @@ async def mention_no_reaction_users(ctx, *args):
             await ctx.send(f'not found message, id={message_id}')
             return
 
-        with build('sheets', 'v4', developerKey=os.environ['GOOGLE_SPREAD_SHEET_API_KEY']) as service:
-            result = service.spreadsheets().values() \
-                .get(spreadsheetId=IGNORE_LIST_SHEET_ID, range=f'{ctx.guild.id}!A1:A100') \
-                .execute()
-            ignore_ids = list(itertools.chain.from_iterable(result.get('values', [])))
-            ignore_ids = [int(ignore_id) for ignore_id in ignore_ids]
-            print(f'read ignore_list: {ignore_ids}')
+        credentials_file = os.environ['GOOGLE_CREDENTIALS_FILE']
+        credentials = service_account.Credentials.from_service_account_file(credentials_file, scopes=SCOPES)
+        client = gspread.authorize(credentials)
+        sheet_id = os.environ['IGNORE_LIST_SHEET_ID']
+        workbook = client.open_by_key(sheet_id)
+        worksheet = workbook.worksheet(str(ctx.guild.id))
+        ignore_ids = worksheet.col_values(1)
+        ignore_ids = [int(ignore_id) for ignore_id in ignore_ids]
+        print(f'read ignore_list: {ignore_ids}')
 
         no_reaction_members = [member for member in channel.members if
                                not member.bot and member.id not in ignore_ids and member.id != message.author.id]
