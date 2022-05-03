@@ -2,7 +2,6 @@ import contextlib
 import csv
 import datetime
 import io
-import itertools
 import json
 import os
 import re
@@ -10,11 +9,10 @@ import traceback
 import gspread
 
 import discord
-from discord import User, ChannelType, Intents, Guild, Message, File
+from discord import User, ChannelType, Intents, Guild, Message
 from discord.abc import GuildChannel
 from discord.ext import commands
 from google.oauth2 import service_account
-from googleapiclient.discovery import build
 
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
