@@ -238,7 +238,10 @@ async def mention_no_reaction_users(ctx, *args):
             await ctx.send(f'not found message, id={message_id}')
             return
 
-        if 'ignore_list' not in parsed or parsed['ignore_list'].lower() != 'false':
+        if 'ignore_list' in parsed and parsed['ignore_list'].lower() == 'false':
+            ignore_ids = []
+            print('skip ignore_list')
+        else:
             sheet_id = os.environ['IGNORE_LIST_SHEET_ID']
             workbook = gspread_client.open_by_key(sheet_id)
             worksheet = workbook.worksheet(str(ctx.guild.id))
