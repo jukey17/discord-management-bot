@@ -44,9 +44,7 @@ class MessageCounter:
         self.count = 0
 
     def __str__(self):
-        return (
-            f"user=[{self.user}], channel=[{self.channel}], count={self.count}"
-        )
+        return f"user=[{self.user}], channel=[{self.channel}], count={self.count}"
 
     def try_increment(self, user: User):
         if self.user.id != user.id:
@@ -86,12 +84,16 @@ def parse_args(args):
 
 
 def parse_before_after(args: dict):
-    before = None
-    after = None
+    before: datetime.datetime = None
+    after: datetime.datetime = None
     if "before" in args:
-        before = datetime.datetime.strptime(args["before"], "%Y-%m-%d")
+        before = datetime.datetime.strptime(args["before"], "%Y-%m-%d").astimezone(
+            datetime.timezone.utc
+        )
     if "after" in args:
-        after = datetime.datetime.strptime(args["after"], "%Y-%m-%d")
+        after = datetime.datetime.strptime(args["after"], "%Y-%m-%d").astimezone(
+            datetime.timezone.utc
+        )
 
     if after is not None and before is not None and after > before:
         raise ValueError("before must be a future than after.")
@@ -101,14 +103,12 @@ def parse_before_after(args: dict):
 
 def parse_json(obj):
     if isinstance(obj, datetime.datetime):
-        return obj.isoformat()
+        return obj.isoformat(" ")
     else:
         str(obj)
 
 
-async def find_channel(
-    guild: Guild, message_id: int
-) -> (GuildChannel, Message):
+async def find_channel(guild: Guild, message_id: int) -> (GuildChannel, Message):
     message = None
     result = None
     for channel in guild.channels:
@@ -138,9 +138,7 @@ async def find_no_reaction_users(message: Message, candidates: list) -> list:
     return result
 
 
-async def find_reaction_users(
-    message: Message, ignore_ids: list, emoji: str
-) -> list:
+async def find_reaction_users(message: Message, ignore_ids: list, emoji: str) -> list:
     target = None
     for reaction in message.reactions:
         if isinstance(reaction.emoji, Emoji) and reaction.emoji.name in emoji:
@@ -174,20 +172,14 @@ async def count_messages(
         raise ValueError(f"not found channel: id={channel_id}")
 
     if channel.type != ChannelType.text:
-        raise TypeError(
-            f"{channel.name} is not TextChannel: type={channel.type}"
-        )
+        raise TypeError(f"{channel.name} is not TextChannel: type={channel.type}")
 
     message_counters = [
-        MessageCounter(member, channel)
-        for member in guild.members
-        if not member.bot
+        MessageCounter(member, channel) for member in guild.members if not member.bot
     ]
 
     print(f"count from history, after={after} before={before}")
-    async for message in channel.history(
-        limit=None, before=before, after=after
-    ):
+    async for message in channel.history(limit=None, before=before, after=after):
         for counter in message_counters:
             counter.try_increment(message.author)
 
@@ -213,9 +205,7 @@ async def manage_mention_to_reaction_users(ctx, args):
         workbook = gspread_client.open_by_key(sheet_id)
         worksheet = workbook.worksheet(str(ctx.guild.id))
         ignore_ids = worksheet.col_values(1)
-        ignore_users = [
-            ctx.guild.get_member(int(user_id)) for user_id in ignore_ids
-        ]
+        ignore_users = [ctx.guild.get_member(int(user_id)) for user_id in ignore_ids]
 
         if "download" in args:
             filename = f"ignore_list_{ctx.guild.id}.json"
@@ -223,9 +213,7 @@ async def manage_mention_to_reaction_users(ctx, args):
                 f"download ignore_list: sheet_id={sheet_id}, guild={ctx.guild.id}-> {filename}"
             )
             ignore_dict = [
-                dict(
-                    id=user.id, name=user.name, display_name=user.display_name
-                )
+                dict(id=user.id, name=user.name, display_name=user.display_name)
                 for user in ignore_users
             ]
             with contextlib.closing(io.StringIO()) as buffer:
@@ -261,9 +249,7 @@ async def manage_mention_to_reaction_users(ctx, args):
                 f"remove ignore_list: sheet_id={sheet_id}, guild={ctx.guild.id}, user={remove_id}"
             )
             if remove_id not in ignore_ids:
-                await ctx.send(
-                    f"not contains ignore_list: user_id={remove_id}"
-                )
+                await ctx.send(f"not contains ignore_list: user_id={remove_id}")
                 return
             ignore_ids.remove(remove_id)
             ignore_ids.append("")
@@ -274,13 +260,9 @@ async def manage_mention_to_reaction_users(ctx, args):
             await ctx.send("completed remove ignore_list!")
 
         if "show" in args:
-            print(
-                f"show ignore_list: sheet_id={sheet_id}, guild={ctx.guild.id}"
-            )
+            print(f"show ignore_list: sheet_id={sheet_id}, guild={ctx.guild.id}")
             await ctx.send(
-                "\n".join(
-                    [f"{user.display_name} {user.id}" for user in ignore_users]
-                )
+                "\n".join([f"{user.display_name} {user.id}" for user in ignore_users])
             )
 
 
@@ -339,10 +321,7 @@ async def mention_to_reaction_users(ctx, *args):
             await ctx.send(f"not found message, id={message_id}")
             return
 
-        if (
-            "ignore_list" in parsed
-            and parsed["ignore_list"].lower() == "false"
-        ):
+        if "ignore_list" in parsed and parsed["ignore_list"].lower() == "false":
             ignore_ids = []
             print("skip ignore_list")
         else:
@@ -412,10 +391,7 @@ async def message_count(ctx, *args):
                 channel_ids.append(int(parsed["channel"]))
             if "channels" in parsed:
                 channel_ids.extend(
-                    [
-                        int(channel_id)
-                        for channel_id in parsed["channels"].split(",")
-                    ]
+                    [int(channel_id) for channel_id in parsed["channels"].split(",")]
                 )
         except Exception as e:
             print(e)
@@ -493,9 +469,7 @@ async def download_messages_json(ctx, *args):
             return
 
         if channel.type != ChannelType.text:
-            await ctx.send(
-                f"{channel.name} is not TextChannel: type={channel.type}"
-            )
+            await ctx.send(f"{channel.name} is not TextChannel: type={channel.type}")
             return
 
         try:
@@ -506,16 +480,15 @@ async def download_messages_json(ctx, *args):
             return
 
         print(f"read messages from history, after={after} before={before}")
+        jst_timezone = datetime.timezone(datetime.timedelta(hours=+9), "JST")
         outputs = []
-        async for message in channel.history(
-            limit=None, before=before, after=after
-        ):
+        async for message in channel.history(limit=None, before=before, after=after):
             message_dict = dict(
                 id=message.id,
                 author=message.author.name,
                 display_name=message.author.display_name,
-                created_at=message.created_at,
-                edited_at=message.edited_at,
+                created_at=message.created_at.astimezone(jst_timezone),
+                edited_at=message.edited_at.astimezone(jst_timezone),
                 message=message.content,
             )
             outputs.append(message_dict)
@@ -534,13 +507,9 @@ async def download_messages_json(ctx, *args):
             print(f"send {filename}")
             outputs = [
                 f"#{channel.name}",
-                after.strftime("%Y-%m-%d")
-                + " ~ "
-                + before.strftime("%Y-%m-%d"),
+                after.strftime("%Y-%m-%d") + " ~ " + before.strftime("%Y-%m-%d"),
             ]
-            await ctx.send(
-                "\n".join(outputs), file=discord.File(buffer, filename)
-            )
+            await ctx.send("\n".join(outputs), file=discord.File(buffer, filename))
 
 
 bot.run(token)
