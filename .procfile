@@ -1,2 +1,0 @@
-./heroku-release.sh
-echo execute .procfile

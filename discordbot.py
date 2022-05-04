@@ -14,8 +14,6 @@ from discord.abc import GuildChannel
 from discord.ext import commands
 from google.oauth2 import service_account
 
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-
 intents = Intents.default()
 intents.members = True
 bot = commands.Bot(command_prefix='/', intents=intents)
@@ -56,9 +54,11 @@ class MessageCountResult:
         return output
 
 
-def convert_1d_to_2d(target, columns):
-    return [target[i:i + columns] for i in range(0, len(target), columns)]
-
+def authorize_gspread() -> gspread.Client:
+    scopes = ['https://www.googleapis.com/auth/spreadsheets']
+    credentials_file = os.environ['GOOGLE_CREDENTIALS_FILE']
+    credentials = service_account.Credentials.from_service_account_file(credentials_file, scopes=scopes)
+    return gspread.authorize(credentials)
 
 def parse_args(args):
     parsed = {}
@@ -144,9 +144,7 @@ async def manage_mention_no_reaction_users(ctx, args):
     print('manage mode')
 
     if 'ignore_list' in args:
-        credentials_file = os.environ['GOOGLE_CREDENTIALS_FILE']
-        credentials = service_account.Credentials.from_service_account_file(credentials_file, scopes=SCOPES)
-        client = gspread.authorize(credentials)
+        client = authorize_gspread()
         sheet_id = os.environ['IGNORE_LIST_SHEET_ID']
         workbook = client.open_by_key(sheet_id)
         worksheet = workbook.worksheet(str(ctx.guild.id))
@@ -199,7 +197,8 @@ async def manage_mention_no_reaction_users(ctx, args):
 async def on_command_error(ctx, error):
     orig_error = getattr(error, "original", error)
     error_msg = ''.join(traceback.TracebackException.from_exception(orig_error).format())
-    await ctx.send(error_msg)
+    print(error_msg)
+    await ctx.send('command is error. please checking server logs.')
 
 
 @bot.command()
@@ -239,9 +238,10 @@ async def mention_no_reaction_users(ctx, *args):
             await ctx.send(f'not found message, id={message_id}')
             return
 
-        credentials_file = os.environ['GOOGLE_CREDENTIALS_FILE']
-        credentials = service_account.Credentials.from_service_account_file(credentials_file, scopes=SCOPES)
-        client = gspread.authorize(credentials)
+        try:
+            client = authorize_gspread()
+        except Exception as e:
+            print(e)
         sheet_id = os.environ['IGNORE_LIST_SHEET_ID']
         workbook = client.open_by_key(sheet_id)
         worksheet = workbook.worksheet(str(ctx.guild.id))
