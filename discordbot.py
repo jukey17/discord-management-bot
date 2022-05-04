@@ -19,6 +19,13 @@ intents.members = True
 bot = commands.Bot(command_prefix='/', intents=intents)
 token = os.environ['DISCORD_BOT_TOKEN']
 
+scopes = ['https://www.googleapis.com/auth/spreadsheets']
+credentials_file = os.environ['GOOGLE_CREDENTIALS_FILE']
+credentials = service_account.Credentials.from_service_account_file(
+    os.environ['GOOGLE_CREDENTIALS_FILE'],
+    scopes=['https://www.googleapis.com/auth/spreadsheets'])
+gspread_client = gspread.authorize(credentials)
+
 
 class MessageCounter:
     def __init__(self, user: User, channel: GuildChannel):
@@ -52,13 +59,6 @@ class MessageCountResult:
         for channel, count in self.result_map.items():
             output[channel.name] = count
         return output
-
-
-def authorize_gspread() -> gspread.Client:
-    scopes = ['https://www.googleapis.com/auth/spreadsheets']
-    credentials_file = os.environ['GOOGLE_CREDENTIALS_FILE']
-    credentials = service_account.Credentials.from_service_account_file(credentials_file, scopes=scopes)
-    return gspread.authorize(credentials)
 
 
 def parse_args(args):
@@ -145,9 +145,8 @@ async def manage_mention_no_reaction_users(ctx, args):
     print('manage mode')
 
     if 'ignore_list' in args:
-        client = authorize_gspread()
         sheet_id = os.environ['IGNORE_LIST_SHEET_ID']
-        workbook = client.open_by_key(sheet_id)
+        workbook = gspread_client.open_by_key(sheet_id)
         worksheet = workbook.worksheet(str(ctx.guild.id))
         ignore_ids = worksheet.col_values(1)
         ignore_users = [ctx.guild.get_member(int(user_id)) for user_id in ignore_ids]
@@ -243,9 +242,8 @@ async def mention_no_reaction_users(ctx, *args):
             await ctx.send(f'not found message, id={message_id}')
             return
 
-        client = authorize_gspread()
         sheet_id = os.environ['IGNORE_LIST_SHEET_ID']
-        workbook = client.open_by_key(sheet_id)
+        workbook = gspread_client.open_by_key(sheet_id)
         worksheet = workbook.worksheet(str(ctx.guild.id))
         ignore_ids = worksheet.col_values(1)
         ignore_ids = [int(ignore_id) for ignore_id in ignore_ids]
