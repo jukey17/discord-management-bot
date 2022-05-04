@@ -290,8 +290,8 @@ async def mention_to_reaction_users(ctx, *args):
             print(f'read ignore_list: {ignore_ids}')
 
         if parsed['reaction'].lower() == 'none':
-            targets = [member for member in channel.members if not member.bot and member.id != message.author.id and
-                       member.id not in ignore_ids]
+            targets = [member for member in channel.members if not member.bot and member.id != message.author.id
+                       and member.id not in ignore_ids]
             print(f'find no reaction users: target={[member.display_name for member in targets]}')
             result = await find_no_reaction_users(message, targets)
         else:
