@@ -220,10 +220,6 @@ async def mention_no_reaction_users(ctx, *args):
             await ctx.send('message parameter must be set.')
             return
 
-        if 'reaction' not in parsed:
-            await ctx.send('reaction parameter must be set.')
-            return
-
         try:
             message_id = int(parsed['message'])
         except Exception as e:
@@ -242,25 +238,15 @@ async def mention_no_reaction_users(ctx, *args):
             await ctx.send(f'not found message, id={message_id}')
             return
 
-        sheet_id = os.environ['IGNORE_LIST_SHEET_ID']
-        workbook = gspread_client.open_by_key(sheet_id)
-        worksheet = workbook.worksheet(str(ctx.guild.id))
-        ignore_ids = worksheet.col_values(1)
-        ignore_ids = [int(ignore_id) for ignore_id in ignore_ids]
-        print(f'read ignore_list: {ignore_ids}')
+        if 'ignore_list' not in parsed or parsed['ignore_list'].lower() != 'false':
+            sheet_id = os.environ['IGNORE_LIST_SHEET_ID']
+            workbook = gspread_client.open_by_key(sheet_id)
+            worksheet = workbook.worksheet(str(ctx.guild.id))
+            ignore_ids = worksheet.col_values(1)
+            ignore_ids = [int(ignore_id) for ignore_id in ignore_ids]
+            print(f'read ignore_list: {ignore_ids}')
 
-        if 'ignore_list' in parsed and parsed['ignore_list'].lower() == 'false':
-            def filter_member(member: Member):
-                return not member.bot and member.id != message.author.id
-
-            member_filter = filter_member
-        else:
-            def filter_member(member: Member):
-                return not not member.bot and member.id != message.author.id and member.id not in ignore_ids
-
-            member_filter = filter_member
-
-        no_reaction_members = [member for member in channel.members if member_filter(member)]
+        no_reaction_members = [member for member in channel.members if not member.bot and member.id != message.author.id and member.id not in ignore_ids]
         print(f'target users: {[member.display_name for member in no_reaction_members]}')
 
         for reaction in message.reactions:
