@@ -10,7 +10,7 @@ import traceback
 import gspread
 
 import discord
-from discord import User, ChannelType, Intents, Guild, Message, Member, Emoji, PartialEmoji, Reaction
+from discord import User, ChannelType, Intents, Guild, Message, Emoji, PartialEmoji
 from discord.abc import GuildChannel
 from discord.ext import commands
 from google.oauth2 import service_account
