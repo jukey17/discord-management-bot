@@ -1,2 +1,2 @@
-release: ./heroku-release.sh
+discordbot: ./heroku-release.sh
 discordbot: python discordbot.py
