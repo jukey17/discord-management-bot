@@ -87,12 +87,16 @@ def parse_before_after(args: dict):
     before: datetime.datetime = None
     after: datetime.datetime = None
     if "before" in args:
-        before = datetime.datetime.strptime(args["before"], "%Y-%m-%d").astimezone(
-            datetime.timezone.utc
+        before = (
+            datetime.datetime.strptime(args["before"], "%Y-%m-%d")
+            .astimezone(datetime.timezone.utc)
+            .replace(tzinfo=None)
         )
     if "after" in args:
-        after = datetime.datetime.strptime(args["after"], "%Y-%m-%d").astimezone(
-            datetime.timezone.utc
+        after = (
+            datetime.datetime.strptime(args["after"], "%Y-%m-%d")
+            .astimezone(datetime.timezone.utc)
+            .replace(tzinfo=None)
         )
 
     if after is not None and before is not None and after > before:
@@ -462,6 +466,7 @@ async def download_messages_json(ctx, *args):
             return
 
         print(f"fetch channel: {channel_id}")
+
         channel = ctx.guild.get_channel(channel_id)
 
         if channel is None:
