@@ -1,4 +1,5 @@
 import contextlib
+import copy
 import csv
 import datetime
 import io
@@ -9,7 +10,7 @@ import traceback
 import gspread
 
 import discord
-from discord import User, ChannelType, Intents, Guild, Message, Member
+from discord import User, ChannelType, Intents, Guild, Message, Member, Emoji, PartialEmoji, Reaction
 from discord.abc import GuildChannel
 from discord.ext import commands
 from google.oauth2 import service_account
@@ -110,6 +111,41 @@ async def find_channel(guild: Guild, message_id: int) -> (GuildChannel, Message)
     return result, message
 
 
+async def find_no_reaction_users(message: Message, candidates: list) -> list:
+    result = copy.copy(candidates)
+    for reaction in message.reactions:
+        users = [user async for user in reaction.users()]
+        for candidate in candidates:
+            if candidate not in result:
+                continue
+            for user in users:
+                if candidate.id == user.id:
+                    result.remove(candidate)
+
+    return result
+
+
+async def find_reaction_users(message: Message, ignore_ids: list, emoji: str) -> list:
+    target = None
+    for reaction in message.reactions:
+        if isinstance(reaction.emoji, Emoji) and reaction.emoji.name in emoji:
+            target = reaction
+            break
+        if isinstance(reaction.emoji, PartialEmoji):
+            if reaction.emoji.id is None:
+                continue
+            if reaction.emoji.name in emoji:
+                target = reaction
+                break
+        if isinstance(reaction.emoji, str) and reaction.emoji == emoji:
+            target = reaction
+            break
+
+    if target is None:
+        return []
+    return [user async for user in target.users() if user.id not in ignore_ids]
+
+
 async def count_messages(guild: Guild, channel_id: int, before: datetime.datetime, after: datetime.datetime):
     print(f'fetch channel: {channel_id}')
     channel = guild.get_channel(channel_id)
@@ -141,7 +177,7 @@ def convert_to_message_count_result(counter_map: dict):
     return results
 
 
-async def manage_mention_no_reaction_users(ctx, args):
+async def manage_mention_to_reaction_users(ctx, args):
     print('manage mode')
 
     if 'ignore_list' in args:
@@ -202,7 +238,7 @@ async def on_command_error(ctx, error):
 
 
 @bot.command()
-async def mention_no_reaction_users(ctx, *args):
+async def mention_to_reaction_users(ctx, *args):
     print(f'{ctx.command} executor={ctx.author}, channel={ctx.channel}, time={datetime.datetime.now()}')
 
     if ctx.author.bot:
@@ -213,11 +249,15 @@ async def mention_no_reaction_users(ctx, *args):
         parsed = parse_args(args)
 
         if 'manage' in parsed:
-            await manage_mention_no_reaction_users(ctx, parsed)
+            await manage_mention_to_reaction_users(ctx, parsed)
             return
 
         if 'message' not in parsed:
             await ctx.send('message parameter must be set.')
+            return
+
+        if 'reaction' not in parsed:
+            await ctx.send('reaction parameter must be set.')
             return
 
         try:
@@ -249,26 +289,23 @@ async def mention_no_reaction_users(ctx, *args):
             ignore_ids = [int(ignore_id) for ignore_id in ignore_ids]
             print(f'read ignore_list: {ignore_ids}')
 
-        no_reaction_members = [member for member in channel.members if not member.bot and member.id != message.author.id and member.id not in ignore_ids]
-        print(f'target users: {[member.display_name for member in no_reaction_members]}')
-
-        for reaction in message.reactions:
-            users = [user async for user in reaction.users()]
-            print(f'count reaction: {reaction}')
-            for member in ctx.guild.members:
-                if member not in no_reaction_members:
-                    continue
-                for user in users:
-                    if member.id == user.id:
-                        no_reaction_members.remove(member)
-
-        if len(no_reaction_members) > 0:
-            result = 'no reaction: ' + ', '.join([member.mention for member in no_reaction_members])
+        if parsed['reaction'].lower() == 'none':
+            targets = [member for member in channel.members if not member.bot and member.id != message.author.id and
+                       member.id not in ignore_ids]
+            print(f'find no reaction users: target={[member.display_name for member in targets]}')
+            result = await find_no_reaction_users(message, targets)
         else:
-            result = 'all member reaction!'
+            emoji = parsed['reaction']
+            print(f'find reaction users: target={emoji}')
+            result = await find_reaction_users(message, ignore_ids, emoji)
 
-    print(f'send: {result}')
-    await ctx.send(result)
+        if len(result) > 0:
+            output_text = ', '.join([member.mention for member in result])
+        else:
+            output_text = 'none!'
+
+    print(f'send: {output_text}')
+    await ctx.send(output_text)
 
 
 @bot.command()
