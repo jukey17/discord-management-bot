@@ -198,7 +198,7 @@ async def on_command_error(ctx, error):
     orig_error = getattr(error, "original", error)
     error_msg = ''.join(traceback.TracebackException.from_exception(orig_error).format())
     print(error_msg)
-    await ctx.send('command is error. please checking server logs.')
+    await ctx.send('unintentional error by the developer, please check the server logs.')
 
 
 @bot.command()
