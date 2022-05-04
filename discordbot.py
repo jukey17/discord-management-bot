@@ -496,7 +496,7 @@ async def download_messages_json(ctx, *args):
                 message=message.content,
             )
             if message.edited_at is not None:
-                message['edited_at'] = message.edited_at.astimezone(jst_timezone)
+                message_dict['edited_at'] = message.edited_at.astimezone(jst_timezone)
             outputs.append(message_dict)
 
         filename = "messages.json"
