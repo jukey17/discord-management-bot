@@ -23,6 +23,9 @@ from discord.abc import GuildChannel
 from discord.ext import commands
 from google.oauth2 import service_account
 
+from utils.discord_utils import find_channel
+from utils.misc_utils import parse_json, parse_before_after
+
 intents = Intents.default()
 intents.members = True
 bot = commands.Bot(command_prefix="/", intents=intents)
@@ -81,54 +84,6 @@ def parse_args(args):
             parsed[result.group(1)] = result.group(2)
 
     return parsed
-
-
-def parse_before_after(args: dict):
-    before: datetime.datetime = None
-    after: datetime.datetime = None
-    jst_timezone = datetime.timezone(datetime.timedelta(hours=9), "JST")
-    if "before" in args:
-        before = (
-            datetime.datetime.strptime(args["before"], "%Y-%m-%d")
-            .replace(tzinfo=jst_timezone)
-            .astimezone(datetime.timezone.utc)
-            .replace(tzinfo=None)
-        )
-    if "after" in args:
-        after = (
-            datetime.datetime.strptime(args["after"], "%Y-%m-%d")
-            .replace(tzinfo=jst_timezone)
-            .astimezone(datetime.timezone.utc)
-            .replace(tzinfo=None)
-        )
-
-    if after is not None and before is not None and after > before:
-        raise ValueError("before must be a future than after.")
-
-    return before, after
-
-
-def parse_json(obj):
-    if isinstance(obj, datetime.datetime):
-        return obj.isoformat(" ")
-    else:
-        str(obj)
-
-
-async def find_channel(guild: Guild, message_id: int) -> (GuildChannel, Message):
-    message = None
-    result = None
-    for channel in guild.channels:
-        if channel.type != ChannelType.text:
-            continue
-        try:
-            message = await channel.fetch_message(message_id)
-        except Exception as e:
-            print(f"channel={channel.name}, exception={e}")
-        if message is not None:
-            result = channel
-            break
-    return result, message
 
 
 async def find_no_reaction_users(message: Message, candidates: list) -> list:
@@ -499,7 +454,7 @@ async def download_messages_json(ctx, *args):
                 message=message.content,
             )
             if message.edited_at is not None:
-                message_dict['edited_at'] = message.edited_at.astimezone(jst_timezone)
+                message_dict["edited_at"] = message.edited_at.astimezone(jst_timezone)
             outputs.append(message_dict)
 
         filename = "messages.json"
