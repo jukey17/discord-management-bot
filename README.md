@@ -25,9 +25,13 @@
 
     ```/mention_to_reaction_users message={message_id} reaction=:custom_emoji: ignore_list=False```
 
-- {message_id}のメッセージにリアクションをしていないユーザーにメンションを飛ばす(無視リストを使う)
+- {message_id}のメッセージにリアクションをしていないユーザー全てにメンションを飛ばす(無視リストを使う)
 
     ```/mention_to_reaction_users message={message_id} reaction=None```
+
+- {message_id}のメッセージにリアクションをしているユーザー全てにメンションを飛ばす(無視リストを使う)
+
+    ```/mention_to_reaction_users message={message_id} reaction=All```
 
 ### `/mention_to_reaction_users manage ignore_list show|download|append={user_id}}|remove={user_id}`
 
