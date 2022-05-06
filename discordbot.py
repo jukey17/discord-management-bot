@@ -5,7 +5,6 @@ import io
 import json
 import os
 import traceback
-import gspread
 
 import discord
 from discord import (
@@ -16,7 +15,6 @@ from discord import (
 )
 from discord.abc import GuildChannel
 from discord.ext import commands
-from google.oauth2 import service_account
 
 from commands.mention_to_reaction_users_command import MentionToReactionUsersCommand
 from utils.misc import parse_json, parse_before_after, parse_args
@@ -24,6 +22,7 @@ from utils.misc import parse_json, parse_before_after, parse_args
 intents = Intents.default()
 intents.members = True
 bot = commands.Bot(command_prefix="/", intents=intents)
+bot.load_extension('dispander')
 token = os.environ["DISCORD_BOT_TOKEN"]
 mention_to_reaction_users_command = MentionToReactionUsersCommand()
 
