@@ -22,8 +22,8 @@ from discord.abc import GuildChannel
 from discord.ext import commands
 from google.oauth2 import service_account
 
-from utils.discord_utils import find_channel
-from utils.misc_utils import parse_json, parse_before_after, parse_args
+from utils.discord import find_channel
+from utils.misc import parse_json, parse_before_after, parse_args
 
 intents = Intents.default()
 intents.members = True
