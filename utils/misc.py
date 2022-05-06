@@ -14,27 +14,25 @@ def parse_args(args):
     return parsed
 
 
-def parse_boolean(dic: dict, key) -> bool:
+def get_boolean(dic: dict, key) -> bool:
     return True if key in dic and dic[key].lower() != "false" else False
 
 
-def parse_or_default(dic: dict, key, default):
+def get_or_default(dic: dict, key, default):
     return dic[key] if key in dic else default
 
 
-def parse_before_after(args: dict):
+def get_before_after_jst(args: dict):
     before: datetime.datetime = None
     after: datetime.datetime = None
     jst_timezone = datetime.timezone(datetime.timedelta(hours=9), "JST")
     if "before" in args:
-        before = (
-            datetime.datetime.strptime(args["before"], "%Y-%m-%d")
-            .replace(tzinfo=jst_timezone)
+        before = datetime.datetime.strptime(args["before"], "%Y-%m-%d").replace(
+            tzinfo=jst_timezone
         )
     if "after" in args:
-        after = (
-            datetime.datetime.strptime(args["after"], "%Y-%m-%d")
-            .replace(tzinfo=jst_timezone)
+        after = datetime.datetime.strptime(args["after"], "%Y-%m-%d").replace(
+            tzinfo=jst_timezone
         )
 
     if after is not None and before is not None and after > before:
@@ -45,6 +43,7 @@ def parse_before_after(args: dict):
 
 def parse_json(obj):
     if isinstance(obj, datetime.datetime):
+        # 正式な区切り文字はTらしいが素人目では見にくいのでとりあえず半角スペースにしている
         return obj.isoformat(" ")
     else:
         str(obj)

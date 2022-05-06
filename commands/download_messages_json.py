@@ -7,7 +7,7 @@ from abc import ABC
 import discord
 
 from commands.command import CommandBase
-from utils.misc import parse_or_default, parse_before_after, parse_json
+from utils.misc import get_or_default, get_before_after_jst, parse_json
 
 
 class DownloadMessagesJsonCommand(CommandBase, ABC):
@@ -18,8 +18,8 @@ class DownloadMessagesJsonCommand(CommandBase, ABC):
         self._after: datetime.datetime = None
 
     def _parse_args(self, args: dict):
-        self._channel_ld = int(parse_or_default(args, "channel", None))
-        self._before, self._after = parse_before_after(args)
+        self._channel_ld = int(get_or_default(args, "channel", None))
+        self._before, self._after = get_before_after_jst(args)
 
     async def _prepare(self, ctx: discord.ext.commands.context.Context):
         pass
@@ -33,8 +33,16 @@ class DownloadMessagesJsonCommand(CommandBase, ABC):
         if channel.type != discord.ChannelType.text:
             raise TypeError(f"{channel.name} is not TextChannel: type={channel.type}")
 
-        before = None if self._before is None else self._before.astimezone(datetime.timezone.utc).replace(tzinfo=None)
-        after = None if self._after is None else self._after.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+        before = (
+            None
+            if self._before is None
+            else self._before.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+        )
+        after = (
+            None
+            if self._after is None
+            else self._after.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+        )
         before_str = "None" if before is None else self._before.strftime("%Y-%m-%d")
         after_str = "None" if after is None else self._after.strftime("%Y-%m-%d")
         print(f"read messages from history, after={after_str} before={before_str}")

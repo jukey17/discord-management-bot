@@ -11,7 +11,7 @@ from google.oauth2.service_account import Credentials
 
 from commands.command import CommandBase
 from utils.discord import find_channel, find_no_reaction_users, find_reaction_users
-from utils.misc import parse_boolean, parse_or_default, parse_json
+from utils.misc import get_boolean, get_or_default, parse_json
 
 
 class _NormalCommand:
@@ -24,7 +24,7 @@ class _NormalCommand:
         self._ignore_ids: list = None
 
     def parse_args(self, args: dict):
-        self._use_ignore_list = parse_boolean(args, "ignore_list")
+        self._use_ignore_list = get_boolean(args, "ignore_list")
         self._message_id = int(args["message"])
         self._reaction_emoji = args["reaction"]
 
@@ -88,11 +88,11 @@ class _ManageCommand:
         self._ignore_ids = None
 
     def parse_args(self, args: dict):
-        self._download = parse_boolean(args, "download")
-        self._append = parse_or_default(args, "append", None)
-        self._remove = parse_or_default(args, "remove", None)
-        self._show = parse_boolean(args, "show")
-        self._use_ignore_list = parse_boolean(args, "ignore_list")
+        self._download = get_boolean(args, "download")
+        self._append = get_or_default(args, "append", None)
+        self._remove = get_or_default(args, "remove", None)
+        self._show = get_boolean(args, "show")
+        self._use_ignore_list = get_boolean(args, "ignore_list")
 
     async def prepare(
         self,
@@ -186,8 +186,8 @@ class MentionToReactionUsersCommand(CommandBase, ABC):
         self._manage_command: _ManageCommand = None
 
     def _parse_args(self, args: dict):
-        self._use_ignore_list = parse_boolean(args, "ignore_list")
-        use_manage = parse_boolean(args, "manage")
+        self._use_ignore_list = get_boolean(args, "ignore_list")
+        use_manage = get_boolean(args, "manage")
         if use_manage:
             self._manage_command = _ManageCommand()
             self._manage_command.parse_args(args)

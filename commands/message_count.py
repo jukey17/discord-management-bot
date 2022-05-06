@@ -7,7 +7,7 @@ from abc import ABC
 import discord
 
 from commands.command import CommandBase
-from utils.misc import parse_before_after
+from utils.misc import get_before_after_jst
 
 
 class _MessageCounter:
@@ -55,7 +55,7 @@ class MessageCountCommand(CommandBase, ABC):
         self._channel_ids = [
             int(channel_id) for channel_id in args["channel"].split(",")
         ]
-        self._before, self._after = parse_before_after(args)
+        self._before, self._after = get_before_after_jst(args)
 
     async def _prepare(self, ctx: discord.ext.commands.context.Context):
         pass
