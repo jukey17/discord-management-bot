@@ -5,7 +5,6 @@ import datetime
 import io
 import json
 import os
-import re
 import traceback
 import gspread
 
@@ -24,7 +23,7 @@ from discord.ext import commands
 from google.oauth2 import service_account
 
 from utils.discord_utils import find_channel
-from utils.misc_utils import parse_json, parse_before_after
+from utils.misc_utils import parse_json, parse_before_after, parse_args
 
 intents = Intents.default()
 intents.members = True
@@ -72,18 +71,6 @@ class MessageCountResult:
         for channel, count in self.result_map.items():
             output[channel.name] = count
         return output
-
-
-def parse_args(args):
-    parsed = {}
-    for arg in args:
-        result = re.match(r"(.*)=(.*)", arg)
-        if result is None:
-            parsed[arg] = "True"
-        else:
-            parsed[result.group(1)] = result.group(2)
-
-    return parsed
 
 
 async def find_no_reaction_users(message: Message, candidates: list) -> list:

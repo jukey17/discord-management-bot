@@ -1,4 +1,17 @@
 import datetime
+import re
+
+
+def parse_args(args):
+    parsed = {}
+    for arg in args:
+        result = re.match(r"(.*)=(.*)", arg)
+        if result is None:
+            parsed[arg] = "True"
+        else:
+            parsed[result.group(1)] = result.group(2)
+
+    return parsed
 
 
 def parse_before_after(args: dict):
