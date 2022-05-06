@@ -14,6 +14,14 @@ def parse_args(args):
     return parsed
 
 
+def parse_boolean(dic: dict, key) -> bool:
+    return True if key in dic and dic[key].lower() != "false" else False
+
+
+def parse_or_default(dic: dict, key, default):
+    return dic[key] if key in dic else default
+
+
 def parse_before_after(args: dict):
     before: datetime.datetime = None
     after: datetime.datetime = None
