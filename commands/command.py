@@ -12,7 +12,7 @@ class CommandBase:
     def __init__(self):
         pass
 
-    async def execute(self, ctx, args):
+    async def execute(self, ctx: discord.ext.commands.context.Context, args):
         print(
             f"{ctx.command} executor={ctx.author}, channel={ctx.channel}, time={datetime.datetime.now()}"
         )

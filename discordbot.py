@@ -2,7 +2,6 @@ import contextlib
 import csv
 import datetime
 import io
-import json
 import os
 import traceback
 
@@ -16,8 +15,9 @@ from discord import (
 from discord.abc import GuildChannel
 from discord.ext import commands
 
-from utils.misc import parse_json, parse_before_after, parse_args
+from commands.download_messages_json import DownloadMessagesJsonCommand
 from commands.mention_to_reaction_users import MentionToReactionUsersCommand
+from utils.misc import parse_before_after, parse_args
 
 intents = Intents.default()
 intents.members = True
@@ -25,6 +25,7 @@ bot = commands.Bot(command_prefix="/", intents=intents)
 bot.load_extension('dispander')
 token = os.environ["DISCORD_BOT_TOKEN"]
 mention_to_reaction_users_command = MentionToReactionUsersCommand()
+download_messages_json_command = DownloadMessagesJsonCommand()
 
 
 class MessageCounter:
@@ -194,82 +195,6 @@ async def message_count(ctx, *args):
 
 @bot.command()
 async def download_messages_json(ctx, *args):
-    print(f"command executor={ctx.author}, time={datetime.datetime.now()}")
-    if ctx.author.bot:
-        await ctx.send("this is bot")
-        return
-
-    print(f"check arguments, {args}")
-    if len(args) < 1:
-        await ctx.send(
-            "format is /download_messages_json channel={channel_id} before={YYYY-mm-dd} after={YYYY-mm-dd})"
-        )
-        return
-
-    async with ctx.typing():
-        parsed = parse_args(args)
-        if "channel" not in parsed:
-            await ctx.send("channel parameter must be set.")
-            return
-
-        try:
-            channel_id = int(parsed["channel"])
-        except Exception as e:
-            print(e)
-            await ctx.send("can not parse channel_id.")
-            return
-
-        print(f"fetch channel: {channel_id}")
-
-        channel = ctx.guild.get_channel(channel_id)
-
-        if channel is None:
-            await ctx.send(f"not found channel, id={channel_id}")
-            return
-
-        if channel.type != ChannelType.text:
-            await ctx.send(f"{channel.name} is not TextChannel: type={channel.type}")
-            return
-
-        try:
-            before, after = parse_before_after(parsed)
-        except Exception as e:
-            print(e)
-            await ctx.send(f"can not parse before/after: {e}")
-            return
-
-        print(f"read messages from history, after={after} before={before}")
-        jst_timezone = datetime.timezone(datetime.timedelta(hours=9), "JST")
-        outputs = []
-        async for message in channel.history(limit=None, before=before, after=after):
-            message_dict = dict(
-                id=message.id,
-                author=message.author.name,
-                display_name=message.author.display_name,
-                created_at=message.created_at.astimezone(jst_timezone),
-                message=message.content,
-            )
-            if message.edited_at is not None:
-                message_dict["edited_at"] = message.edited_at.astimezone(jst_timezone)
-            outputs.append(message_dict)
-
-        filename = "messages.json"
-        print(f"create {filename} buffer")
-        with contextlib.closing(io.StringIO()) as buffer:
-            json.dump(
-                outputs,
-                buffer,
-                default=parse_json,
-                indent=2,
-                ensure_ascii=False,
-            )
-            buffer.seek(0)
-            print(f"send {filename}")
-            outputs = [
-                f"#{channel.name}",
-                after.strftime("%Y-%m-%d") + " ~ " + before.strftime("%Y-%m-%d"),
-            ]
-            await ctx.send("\n".join(outputs), file=discord.File(buffer, filename))
-
+    await download_messages_json_command.execute(ctx, args)
 
 bot.run(token)

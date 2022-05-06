@@ -30,15 +30,11 @@ def parse_before_after(args: dict):
         before = (
             datetime.datetime.strptime(args["before"], "%Y-%m-%d")
             .replace(tzinfo=jst_timezone)
-            .astimezone(datetime.timezone.utc)
-            .replace(tzinfo=None)
         )
     if "after" in args:
         after = (
             datetime.datetime.strptime(args["after"], "%Y-%m-%d")
             .replace(tzinfo=jst_timezone)
-            .astimezone(datetime.timezone.utc)
-            .replace(tzinfo=None)
         )
 
     if after is not None and before is not None and after > before:
