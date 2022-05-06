@@ -3,22 +3,24 @@ import datetime
 import io
 import json
 from abc import ABC
+from typing import Optional
 
 import discord
+import discord.ext
 
 from commands.command import CommandBase
-from utils.misc import get_or_default, get_before_after_jst, parse_json
+from utils.misc import get_before_after_jst, parse_json
 
 
 class DownloadMessagesJsonCommand(CommandBase, ABC):
     def __init__(self):
         CommandBase.__init__(self)
-        self._channel_ld: int = None
-        self._before: datetime.datetime = None
-        self._after: datetime.datetime = None
+        self._channel_ld: Optional[int] = None
+        self._before: Optional[datetime.datetime] = None
+        self._after: Optional[datetime.datetime] = None
 
     def _parse_args(self, args: dict):
-        self._channel_ld = int(get_or_default(args, "channel", None))
+        self._channel_ld = int(args.get("channel", None))
         self._before, self._after = get_before_after_jst(args)
 
     async def _prepare(self, ctx: discord.ext.commands.context.Context):
@@ -45,8 +47,10 @@ class DownloadMessagesJsonCommand(CommandBase, ABC):
         )
         before_str = "None" if before is None else self._before.strftime("%Y-%m-%d")
         after_str = "None" if after is None else self._after.strftime("%Y-%m-%d")
-        print(f"read messages from history, after={after_str} before={before_str}")
+
         jst_timezone = datetime.timezone(datetime.timedelta(hours=9), "JST")
+
+        print(f"read messages from history, after={after_str} before={before_str}")
         outputs = []
         async for message in channel.history(limit=None, before=before, after=after):
             message_dict = dict(

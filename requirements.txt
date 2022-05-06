@@ -1,5 +1,5 @@
-discord
+discord~=1.7.3
 dispander
-gspread
+gspread~=5.3.2
 google-api-python-client
 google-auth-oauthlib

@@ -3,6 +3,7 @@ import io
 import json
 import os
 from abc import ABC
+from typing import Optional
 
 import discord
 import discord.ext
@@ -11,17 +12,17 @@ from google.oauth2.service_account import Credentials
 
 from commands.command import CommandBase
 from utils.discord import find_channel, find_no_reaction_users, find_reaction_users
-from utils.misc import get_boolean, get_or_default, parse_json
+from utils.misc import get_boolean, parse_json
 
 
 class _NormalCommand:
     def __init__(self):
-        self._channel: discord.abc.GuildChannel = None
-        self._message: discord.Message = None
-        self._message_id: int = None
-        self._reaction_emoji: str = None
-        self._use_ignore_list: bool = False
-        self._ignore_ids: list = None
+        self._channel: Optional[discord.abc.GuildChannel] = None
+        self._message: Optional[discord.Message] = None
+        self._message_id: Optional[int] = None
+        self._reaction_emoji: Optional[str] = None
+        self._use_ignore_list: Optional[bool] = False
+        self._ignore_ids: Optional[list] = None
 
     def parse_args(self, args: dict):
         self._use_ignore_list = get_boolean(args, "ignore_list")
@@ -40,6 +41,9 @@ class _NormalCommand:
     async def execute(self, ctx: discord.ext.commands.context.Context):
         if self._channel is None:
             raise ValueError(f"not found channel, message_id={self._message_id}")
+
+        if not isinstance(self._channel, discord.TextChannel):
+            raise TypeError(f"{type(self._channel)} is not TextChannel.")
 
         if self._message is None:
             raise ValueError(f"not found message, id={self._message_id}")
@@ -79,24 +83,23 @@ class _NormalCommand:
 
 class _ManageCommand:
     def __init__(self):
-        self._download = False
-        self._append = None
-        self._remove = None
-        self._show = False
         self._use_ignore_list = False
+        self._download = False
+        self._append: Optional[int] = None
+        self._remove: Optional[int] = None
+        self._show = False
         self._worksheet = None
-        self._ignore_ids = None
+        self._ignore_ids: Optional[list] = None
 
     def parse_args(self, args: dict):
-        self._download = get_boolean(args, "download")
-        self._append = get_or_default(args, "append", None)
-        self._remove = get_or_default(args, "remove", None)
-        self._show = get_boolean(args, "show")
         self._use_ignore_list = get_boolean(args, "ignore_list")
+        self._download = get_boolean(args, "download")
+        self._append = args.get("append", None)
+        self._remove = args.get("remove", None)
+        self._show = get_boolean(args, "show")
 
     async def prepare(
         self,
-        ctx: discord.ext.commands.context.Context,
         worksheet: gspread.worksheet.Worksheet,
         ignore_ids: list,
     ):
@@ -115,7 +118,7 @@ class _ManageCommand:
         if self._download:
             filename = f"ignore_list_{ctx.guild.id}.json"
             print(
-                f"download ignore_list: sheet_id={self._sheet_id}, guild={ctx.guild.id}-> {filename}"
+                f"download ignore_list: sheet_id={self._worksheet.id}, guild={ctx.guild.id}-> {filename}"
             )
             ignore_dict = [
                 dict(id=user.id, name=user.name, display_name=user.display_name)
@@ -135,7 +138,7 @@ class _ManageCommand:
         if self._append is not None:
             append_id = int(self._append)
             print(
-                f"append ignore_list: sheet_id={self._sheet_id}, guild={ctx.guild.id}, user={append_id}"
+                f"append ignore_list: sheet_id={self._worksheet.id}, guild={ctx.guild.id}, user={append_id}"
             )
             if ctx.guild.get_member(append_id) is None:
                 await ctx.send(f"not found user: id={append_id}")
@@ -151,7 +154,7 @@ class _ManageCommand:
         if self._remove is not None:
             remove_id = int(self._remove)
             print(
-                f"remove ignore_list: sheet_id={self._sheet_id}, guild={ctx.guild.id}, user={remove_id}"
+                f"remove ignore_list: sheet_id={self._worksheet.id}, guild={ctx.guild.id}, user={remove_id}"
             )
             if remove_id not in self._ignore_ids:
                 await ctx.send(f"not contains ignore_list: user_id={remove_id}")
@@ -165,7 +168,9 @@ class _ManageCommand:
             await ctx.send("completed remove ignore_list!")
 
         if self._show:
-            print(f"show ignore_list: sheet_id={self._sheet_id}, guild={ctx.guild.id}")
+            print(
+                f"show ignore_list: sheet_id={self._worksheet.id}, guild={ctx.guild.id}"
+            )
             await ctx.send(
                 "\n".join([f"{user.display_name} {user.id}" for user in ignore_users])
             )
@@ -182,8 +187,8 @@ class MentionToReactionUsersCommand(CommandBase, ABC):
             scopes=["https://www.googleapis.com/auth/spreadsheets"],
         )
         self._gspread_client = gspread.authorize(credentials)
-        self._normal_command: _NormalCommand = None
-        self._manage_command: _ManageCommand = None
+        self._normal_command: Optional[_NormalCommand] = None
+        self._manage_command: Optional[_ManageCommand] = None
 
     def _parse_args(self, args: dict):
         self._use_ignore_list = get_boolean(args, "ignore_list")
@@ -205,7 +210,7 @@ class MentionToReactionUsersCommand(CommandBase, ABC):
         print(f"fetch ignore_ids: ignore_ids={ignore_ids}")
 
         if self._manage_command is not None:
-            await self._manage_command.prepare(ctx, worksheet, ignore_ids)
+            await self._manage_command.prepare(worksheet, ignore_ids)
 
         if self._normal_command is not None:
             await self._normal_command.prepare(ctx, ignore_ids)

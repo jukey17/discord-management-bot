@@ -1,5 +1,6 @@
 import datetime
 import re
+from typing import Optional
 
 
 def parse_args(args):
@@ -18,21 +19,17 @@ def get_boolean(dic: dict, key) -> bool:
     return True if key in dic and dic[key].lower() != "false" else False
 
 
-def get_or_default(dic: dict, key, default):
-    return dic[key] if key in dic else default
-
-
 def get_before_after_jst(args: dict):
-    before: datetime.datetime = None
-    after: datetime.datetime = None
-    jst_timezone = datetime.timezone(datetime.timedelta(hours=9), "JST")
+    before: Optional[datetime.datetime] = None
+    after: Optional[datetime.datetime] = None
+    jst = datetime.timezone(datetime.timedelta(hours=9), "JST")
     if "before" in args:
         before = datetime.datetime.strptime(args["before"], "%Y-%m-%d").replace(
-            tzinfo=jst_timezone
+            tzinfo=jst
         )
     if "after" in args:
         after = datetime.datetime.strptime(args["after"], "%Y-%m-%d").replace(
-            tzinfo=jst_timezone
+            tzinfo=jst
         )
 
     if after is not None and before is not None and after > before:

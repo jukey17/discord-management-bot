@@ -3,8 +3,10 @@ import csv
 import datetime
 import io
 from abc import ABC
+from typing import Optional
 
 import discord
+import discord.ext
 
 from commands.command import CommandBase
 from utils.misc import get_before_after_jst
@@ -47,9 +49,9 @@ class _MessageCountResult:
 class MessageCountCommand(CommandBase, ABC):
     def __init__(self):
         CommandBase.__init__(self)
-        self._channel_ids: list = None
-        self._before: datetime.datetime = None
-        self._after: datetime.datetime = None
+        self._channel_ids: Optional[list] = None
+        self._before: Optional[datetime.datetime] = None
+        self._after: Optional[datetime.datetime] = None
 
     def _parse_args(self, args: dict):
         self._channel_ids = [
@@ -78,13 +80,12 @@ class MessageCountCommand(CommandBase, ABC):
             ctx.guild.get_channel(channel_id) for channel_id in self._channel_ids
         ]
         result_map = {}
-        for channel in channels:
+        for channel_id in self._channel_ids:
+            channel = ctx.guild.get_channel(channel_id)
             if channel is None:
-                raise ValueError(f"not found channel: id={channel.id}")
-            if channel.type != discord.ChannelType.text:
-                raise TypeError(
-                    f"{channel.name} is not TextChannel: type={channel.type}"
-                )
+                raise ValueError(f"not found channel: id={channel_id}")
+            if not isinstance(channel, discord.TextChannel):
+                raise TypeError(f"{type(channel)} is not TextChannel")
 
             print(
                 f"{channel.name} count from history, after={after_str} before={before_str}"
@@ -101,8 +102,10 @@ class MessageCountCommand(CommandBase, ABC):
         with contextlib.closing(io.StringIO()) as buffer:
             fieldnames = ["user"]
             fieldnames.extend([key.name for key in result_map.keys()])
+
             writer = csv.DictWriter(buffer, fieldnames)
             writer.writeheader()
+
             for user_id, result in results.items():
                 writer.writerow(result.to_dict())
             buffer.seek(0)
@@ -115,7 +118,7 @@ class MessageCountCommand(CommandBase, ABC):
     @staticmethod
     async def _count_messages(
         guild: discord.Guild,
-        channel: discord.abc.GuildChannel,
+        channel: discord.TextChannel,
         before: datetime.datetime,
         after: datetime.datetime,
     ):
