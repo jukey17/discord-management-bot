@@ -16,13 +16,12 @@ from utils.misc import parse_boolean, parse_or_default, parse_json
 
 class _NormalCommand:
     def __init__(self):
-        self._channel = None
-        self._message = None
-        self._message_id = None
-        self._reaction_emoji = None
-        self._use_ignore_list = False
-        self._worksheet = None
-        self._ignore_ids = None
+        self._channel: discord.abc.GuildChannel = None
+        self._message: discord.Message = None
+        self._message_id: int = None
+        self._reaction_emoji: str = None
+        self._use_ignore_list: bool = False
+        self._ignore_ids: list = None
 
     def parse_args(self, args: dict):
         self._use_ignore_list = parse_boolean(args, "ignore_list")
@@ -57,6 +56,12 @@ class _NormalCommand:
                 f"find no reaction users: target={[member.display_name for member in targets]}"
             )
             result = await find_no_reaction_users(self._message, targets)
+        elif self._reaction_emoji.lower() == "all":
+            print("all reaction users")
+            result = []
+            for reaction in self._message.reactions:
+                users = [user async for user in reaction.users()]
+                result.extend(users)
         else:
             print(f"find reaction users: target={self._reaction_emoji}")
             result = await find_reaction_users(
@@ -64,7 +69,7 @@ class _NormalCommand:
             )
 
         if len(result) > 0:
-            output_text = ", ".join([member.mention for member in result])
+            output_text = ", ".join([member.mention for member in list(set(result))])
         else:
             output_text = "none!"
 
