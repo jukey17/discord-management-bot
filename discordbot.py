@@ -16,8 +16,8 @@ from discord import (
 from discord.abc import GuildChannel
 from discord.ext import commands
 
-from commands.mention_to_reaction_users_command import MentionToReactionUsersCommand
 from utils.misc import parse_json, parse_before_after, parse_args
+from commands.mention_to_reaction_users import MentionToReactionUsersCommand
 
 intents = Intents.default()
 intents.members = True

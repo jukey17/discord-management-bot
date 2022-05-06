@@ -100,7 +100,6 @@ class _ManageCommand:
         worksheet: gspread.worksheet.Worksheet,
         ignore_ids: list,
     ):
-        # NOTE: シートの取得も1度だけでいいかもしれない
         self._worksheet = worksheet
         self._ignore_ids = ignore_ids
 
