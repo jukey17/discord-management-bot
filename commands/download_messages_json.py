@@ -35,16 +35,14 @@ class DownloadMessagesJsonCommand(CommandBase, ABC):
         if channel.type != discord.ChannelType.text:
             raise TypeError(f"{channel.name} is not TextChannel: type={channel.type}")
 
-        before = (
-            None
-            if self._before is None
-            else self._before.astimezone(datetime.timezone.utc).replace(tzinfo=None)
-        )
-        after = (
-            None
-            if self._after is None
-            else self._after.astimezone(datetime.timezone.utc).replace(tzinfo=None)
-        )
+        before: Optional[datetime.datetime] = None
+        if self._before is not None:
+            before = self._before.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+
+        after: Optional[datetime.datetime] = None
+        if self._after is not None:
+            after = self._after.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+
         before_str = "None" if before is None else self._before.strftime("%Y-%m-%d")
         after_str = "None" if after is None else self._after.strftime("%Y-%m-%d")
 
