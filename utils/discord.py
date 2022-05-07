@@ -39,9 +39,7 @@ async def find_no_reaction_users(message: discord.Message, candidates: list) -> 
     return result
 
 
-async def find_reaction_users(
-    message: discord.Message, ignore_ids: list, emoji: str
-) -> list:
+async def find_reaction_users(message: discord.Message, emoji: str) -> list:
     target = None
     for reaction in message.reactions:
         if isinstance(reaction.emoji, discord.Emoji) and reaction.emoji.name in emoji:
@@ -59,4 +57,4 @@ async def find_reaction_users(
 
     if target is None:
         return []
-    return [user async for user in target.users() if user.id not in ignore_ids]
+    return [user async for user in target.users()]

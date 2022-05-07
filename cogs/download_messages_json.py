@@ -2,29 +2,30 @@ import contextlib
 import datetime
 import io
 import json
-from abc import ABC
 from typing import Optional
 
 import discord
 import discord.ext
 
-from commands.command import CommandBase
+from cogs.cog import CogBase
 from utils.misc import get_before_after_jst, parse_json
 
 
-class DownloadMessagesJsonCommand(CommandBase, ABC):
-    def __init__(self):
-        CommandBase.__init__(self)
+class DownloadMessageJson(discord.ext.commands.Cog, CogBase):
+    def __init__(self, bot):
+        CogBase.__init__(self)
+        self.bot = bot
         self._channel_ld: Optional[int] = None
         self._before: Optional[datetime.datetime] = None
         self._after: Optional[datetime.datetime] = None
 
+    @discord.ext.commands.command()
+    async def download_messages_json(self, ctx, *args):
+        await self.execute(ctx, args)
+
     def _parse_args(self, args: dict):
         self._channel_ld = int(args.get("channel", None))
         self._before, self._after = get_before_after_jst(args)
-
-    async def _prepare(self, ctx: discord.ext.commands.context.Context):
-        pass
 
     async def _execute(self, ctx: discord.ext.commands.context.Context):
         channel = ctx.guild.get_channel(self._channel_ld)
@@ -76,3 +77,7 @@ class DownloadMessagesJsonCommand(CommandBase, ABC):
             print(f"send {filename}")
             outputs = [f"#{channel.name}", f"{after_str} ~ {before_str}"]
             await ctx.send("\n".join(outputs), file=discord.File(buffer, filename))
+
+
+def setup(bot):
+    return bot.add_cog(DownloadMessageJson(bot))

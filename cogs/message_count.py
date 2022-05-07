@@ -2,13 +2,12 @@ import contextlib
 import csv
 import datetime
 import io
-from abc import ABC
 from typing import Optional
 
 import discord
 import discord.ext
 
-from commands.command import CommandBase
+from cogs.cog import CogBase
 from utils.misc import get_before_after_jst
 
 
@@ -46,21 +45,23 @@ class _MessageCountResult:
         return output
 
 
-class MessageCountCommand(CommandBase, ABC):
-    def __init__(self):
-        CommandBase.__init__(self)
+class MessageCount(discord.ext.commands.Cog, CogBase):
+    def __init__(self, bot):
+        CogBase.__init__(self)
+        self.bot = bot
         self._channel_ids: Optional[list] = None
         self._before: Optional[datetime.datetime] = None
         self._after: Optional[datetime.datetime] = None
+
+    @discord.ext.commands.command()
+    async def message_count(self, ctx, *args):
+        await self.execute(ctx, args)
 
     def _parse_args(self, args: dict):
         self._channel_ids = [
             int(channel_id) for channel_id in args["channel"].split(",")
         ]
         self._before, self._after = get_before_after_jst(args)
-
-    async def _prepare(self, ctx: discord.ext.commands.context.Context):
-        pass
 
     async def _execute(self, ctx: discord.ext.commands.context.Context):
         before: Optional[datetime.datetime] = None
@@ -142,3 +143,7 @@ class MessageCountCommand(CommandBase, ABC):
                 results[counter.user.id].add(channel, counter.count)
 
         return results
+
+
+def setup(bot):
+    return bot.add_cog(MessageCount(bot))

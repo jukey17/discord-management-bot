@@ -1,13 +1,11 @@
 import datetime
-from abc import ABCMeta, abstractmethod
 
 import discord.ext.commands.context
 
 from utils.misc import parse_args
 
 
-class CommandBase:
-    __metaclass__ = ABCMeta
+class CogBase:
 
     def __init__(self):
         pass
@@ -18,24 +16,15 @@ class CommandBase:
         )
 
         if ctx.author.bot:
-            await ctx.send("this is bot")
+            print("this is bot.")
             return
 
         async with ctx.typing():
-            parsed = parse_args(args)
-            self._parse_args(parsed)
-
-            await self._prepare(ctx)
+            self._parse_args(parse_args(args))
             await self._execute(ctx)
 
-    @abstractmethod
     def _parse_args(self, args: dict):
-        pass
+        return NotImplementedError("this method is must be override.")
 
-    @abstractmethod
-    async def _prepare(self, ctx: discord.ext.commands.context.Context):
-        pass
-
-    @abstractmethod
     async def _execute(self, ctx: discord.ext.commands.context.Context):
-        pass
+        return NotImplementedError("this method is must be override.")

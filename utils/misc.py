@@ -15,8 +15,10 @@ def parse_args(args):
     return parsed
 
 
-def get_boolean(dic: dict, key) -> bool:
-    return True if key in dic and dic[key].lower() != "false" else False
+def get_boolean(dic: dict, key, default: bool = False) -> bool:
+    if key not in dic:
+        return default
+    return True if dic[key].lower() != "false" else False
 
 
 def get_before_after_jst(args: dict):
