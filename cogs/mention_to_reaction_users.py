@@ -80,7 +80,7 @@ class _NormalCommand:
         print(f"send: {output_text}")
         await ctx.send(output_text)
 
-        # copy and modify from dispander.module.dispand method
+        # copy and modify from dispander method
         if message.content or message.attachments:
             await ctx.send(embed=dispander.module.compose_embed(message))
         # Send the second and subsequent attachments with embed (named 'embed') respectively:
@@ -238,9 +238,16 @@ class MentionToReactionUsers(discord.ext.commands.Cog, CogBase):
         # NOTE: シートの取得も1度だけでいいかもしれない
         sheet_id = os.environ["IGNORE_LIST_SHEET_ID"]
         workbook = self._gspread_client.open_by_key(sheet_id)
-        worksheet = workbook.worksheet(str(ctx.guild.id))
-        ignore_list = worksheet.col_values(1)
-        ignore_ids = [int(ignore_id) for ignore_id in ignore_list]
+        sheet_name = str(ctx.guild.id)
+        worksheet: Optional[gspread.Worksheet] = None
+        try:
+            worksheet = workbook.worksheet(sheet_name)
+        except gspread.exceptions.WorksheetNotFound:
+            print(f"{sheet_name} does not exist, so add a new one. ")
+            worksheet = workbook.add_worksheet(sheet_name, rows=100, cols=1)
+        finally:
+            ignore_list = worksheet.col_values(1)
+            ignore_ids = [int(ignore_id) for ignore_id in ignore_list]
         print(f"fetch ignore_ids: ignore_ids={ignore_ids}")
 
         if self._manage_command is not None:
