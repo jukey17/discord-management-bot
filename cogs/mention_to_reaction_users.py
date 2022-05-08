@@ -6,11 +6,11 @@ from typing import Optional
 
 import discord.ext.commands
 import gspread
-from google.oauth2.service_account import Credentials
 import dispander.module
 
 from cogs.cog import CogBase
 from utils.discord import find_channel, find_reaction_users, find_no_reaction_users
+from utils.gspread_client import GSpreadClient
 from utils.misc import get_boolean, parse_json
 
 
@@ -210,14 +210,7 @@ class MentionToReactionUsers(discord.ext.commands.Cog, CogBase):
     def __init__(self, bot):
         CogBase.__init__(self)
         self.bot = bot
-
-        # 認証は生成時に一度だけ
-        # TODO: 起動し続けていて認証エラーが出るようだったらそのときに対策を考える
-        credentials = Credentials.from_service_account_file(
-            os.environ["GOOGLE_CREDENTIALS_FILE"],
-            scopes=["https://www.googleapis.com/auth/spreadsheets"],
-        )
-        self._gspread_client = gspread.authorize(credentials)
+        self._gspread_client = GSpreadClient()
         self._normal_command: Optional[_NormalCommand] = None
         self._manage_command: Optional[_ManageCommand] = None
 

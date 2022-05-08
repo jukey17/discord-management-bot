@@ -1,4 +1,4 @@
-discord~=1.7.3
+discord[voice]~=1.7.3
 dispander
 gspread~=5.3.2
 google-api-python-client

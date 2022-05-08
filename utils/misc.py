@@ -21,18 +21,20 @@ def get_boolean(dic: dict, key, default: bool = False) -> bool:
     return True if dic[key].lower() != "false" else False
 
 
-def get_before_after_jst(args: dict):
+def get_before_after_jst(
+    args: dict, to_aware: bool = True
+) -> (datetime.datetime, datetime.datetime):
     before: Optional[datetime.datetime] = None
     after: Optional[datetime.datetime] = None
     jst = datetime.timezone(datetime.timedelta(hours=9), "JST")
     if "before" in args:
-        before = datetime.datetime.strptime(args["before"], "%Y-%m-%d").replace(
-            tzinfo=jst
-        )
+        before = datetime.datetime.strptime(args["before"], "%Y-%m-%d")
+        if to_aware:
+            before = before.replace(tzinfo=jst)
     if "after" in args:
-        after = datetime.datetime.strptime(args["after"], "%Y-%m-%d").replace(
-            tzinfo=jst
-        )
+        after = datetime.datetime.strptime(args["after"], "%Y-%m-%d")
+        if to_aware:
+            after = after.replace(tzinfo=jst)
 
     if after is not None and before is not None and after > before:
         raise ValueError("before must be a future than after.")

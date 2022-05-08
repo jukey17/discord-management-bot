@@ -15,7 +15,7 @@ class DownloadMessageJson(discord.ext.commands.Cog, CogBase):
     def __init__(self, bot):
         CogBase.__init__(self)
         self.bot = bot
-        self._channel_ld: Optional[int] = None
+        self._channel_id: Optional[int] = None
         self._before: Optional[datetime.datetime] = None
         self._after: Optional[datetime.datetime] = None
 
@@ -24,14 +24,14 @@ class DownloadMessageJson(discord.ext.commands.Cog, CogBase):
         await self.execute(ctx, args)
 
     def _parse_args(self, args: dict):
-        self._channel_ld = int(args.get("channel", None))
+        self._channel_id = int(args.get("channel", None))
         self._before, self._after = get_before_after_jst(args)
 
     async def _execute(self, ctx: discord.ext.commands.context.Context):
-        channel = ctx.guild.get_channel(self._channel_ld)
+        channel = ctx.guild.get_channel(self._channel_id)
 
         if channel is None:
-            raise ValueError(f"not found channel, message_id={self._channel_ld}")
+            raise ValueError(f"not found channel, message_id={self._channel_id}")
 
         if channel.type != discord.ChannelType.text:
             raise TypeError(f"{channel.name} is not TextChannel: type={channel.type}")

@@ -6,11 +6,13 @@ from discord.ext import commands
 
 intents = discord.Intents.default()
 intents.members = True
+intents.voice_states = True
 bot = commands.Bot(command_prefix="/", intents=intents)
 bot.load_extension("dispander")
 bot.load_extension("cogs.message_count")
 bot.load_extension("cogs.download_messages_json")
 bot.load_extension("cogs.mention_to_reaction_users")
+bot.load_extension("cogs.logging_voice_states")
 token = os.environ["DISCORD_BOT_TOKEN"]
 
 
