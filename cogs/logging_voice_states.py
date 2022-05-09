@@ -3,7 +3,7 @@ import datetime
 import io
 import json
 import os
-from typing import Optional
+from typing import Optional, List
 
 import discord
 import gspread
@@ -31,7 +31,8 @@ class LoggingVoiceStates(commands.Cog, CogBase):
         self._gspread_client = GSpreadClient()
         self._count: Optional[str] = None
         self._user_id: Optional[int] = None
-        self._download: str
+        self._user_ids: List[int]
+        self._channel_ids: List[int]
         self._before: Optional[datetime.datetime] = None
         self._after: Optional[datetime.datetime] = None
 
@@ -42,6 +43,16 @@ class LoggingVoiceStates(commands.Cog, CogBase):
     def _parse_args(self, args: dict):
         self._count = args.get("count", None)
         self._user_id = args.get("user", None)
+        self._user_ids = (
+            [int(user_id) for user_id in args["user"].split(",")]
+            if "user" in args
+            else []
+        )
+        self._channel_ids = (
+            [int(channel_id) for channel_id in args["channel"].split(",")]
+            if "channel" in args
+            else []
+        )
         self._before, self._after = get_before_after_jst(args, False)
 
     async def _execute(self, ctx: discord.ext.commands.context.Context):
@@ -74,34 +85,54 @@ class LoggingVoiceStates(commands.Cog, CogBase):
             else:
                 records.append(record)
 
-        targets = []
-        if self._user_id is not None:
-            user = ctx.guild.get_member(int(self._user_id))
-            if user is None:
-                await ctx.send(f"not found user: id={self._user_id}")
-                return
-            targets.append(user)
+        if len(self._user_ids) > 0:
+            # ユーザーIDの指定がある→指定のユーザーだけ
+            users = [m for m in ctx.guild.members if m.id in self._user_ids]
         else:
-            targets.extend([member for member in ctx.guild.members if not member.bot])
+            # ユーザーIDの指定がない→BOT以外のサーバー参加ユーザー
+            users = [m for m in ctx.guild.members if not m.bot]
 
-        results = []
-        for target in targets:
-            matched = [
-                record
-                for record in records
-                if record["user_id"] == target.id and self._count in record["state"]
+        if len(self._channel_ids) > 0:
+            # チャンネルIDの指定がある→指定のチャンネルだけ
+            channels = [c for c in ctx.guild.channels if c.id in self._channel_ids]
+        else:
+            # チャンネルIDの指定がない→サーバーのボイスチャンネル
+            channels = [
+                c for c in ctx.guild.channels if isinstance(c, discord.VoiceChannel)
             ]
 
-            results.append(
-                {
-                    "user": {"id": target.id, "name": target.display_name},
-                    "state": self._count,
-                    "count": len(matched),
-                }
-            )
+        results = []
+        for user in users:
+            for channel in channels:
+                matched = [
+                    record
+                    for record in records
+                    if record["user_id"] == user.id
+                    and record["channel_id"] == channel.id
+                    and self._count in record["state"]
+                ]
+                results.append(
+                    {
+                        "user": {"id": user.id, "name": user.display_name},
+                        "channel": {"id": channel.id, "name": channel.name},
+                        "state": self._count,
+                        "count": len(matched),
+                    }
+                )
 
-        before_str = "None" if self._before is None else self._before.strftime("%Y%m%d")
-        after_str = "None" if self._after is None else self._after.strftime("%Y%m%d")
+        if self._before is None:
+            before_str = datetime.datetime.now().strftime("%Y/%m/%d")
+        else:
+            before_str = self._before.strftime("%Y/%m%d")
+        if self._after is None:
+            jst = datetime.timezone(datetime.timedelta(hours=9), "JST")
+            after_str = (
+                ctx.guild.created_at.replace(tzinfo=datetime.timezone.utc)
+                .astimezone(jst)
+                .strftime("%Y/%m/%d")
+            )
+        else:
+            after_str = self._after.strftime("%Y/%m/%d")
 
         filename = f"logging_voice_states_count_{self._count}_{before_str}_{after_str}"
         with contextlib.closing(io.StringIO()) as buffer:
