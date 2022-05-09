@@ -72,7 +72,7 @@ class EmojiCount(discord.ext.commands.Cog, CogBase):
         if before is None:
             before_str = datetime.datetime.now().strftime("%Y/%m/%d")
         else:
-            before_str = self._before.strftime("%Y/%m%d")
+            before_str = self._before.strftime("%Y/%m/%d")
         if after is None:
             jst = datetime.timezone(datetime.timedelta(hours=9), "JST")
             after_str = (
