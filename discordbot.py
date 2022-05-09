@@ -10,6 +10,7 @@ intents.voice_states = True
 bot = commands.Bot(command_prefix="/", intents=intents)
 bot.load_extension("dispander")
 bot.load_extension("cogs.message_count")
+bot.load_extension("cogs.emoji_count")
 bot.load_extension("cogs.download_messages_json")
 bot.load_extension("cogs.mention_to_reaction_users")
 bot.load_extension("cogs.logging_voice_states")
