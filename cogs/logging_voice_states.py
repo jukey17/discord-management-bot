@@ -14,6 +14,7 @@ from utils.gspread_client import GSpreadClient, get_or_add_worksheet
 from utils.misc import get_before_after_jst, parse_json
 
 TIME_FORMAT = "%Y/%m/%d %H:%M:%S.%f"
+JST = datetime.timezone(datetime.timedelta(hours=9), "JST")
 
 
 def _duplicate_template_sheet(
@@ -125,10 +126,9 @@ class LoggingVoiceStates(commands.Cog, CogBase):
         else:
             before_str = self._before.strftime("%Y/%m/%d")
         if self._after is None:
-            jst = datetime.timezone(datetime.timedelta(hours=9), "JST")
             after_str = (
                 ctx.guild.created_at.replace(tzinfo=datetime.timezone.utc)
-                .astimezone(jst)
+                .astimezone(JST)
                 .strftime("%Y/%m/%d")
             )
         else:
@@ -155,7 +155,7 @@ class LoggingVoiceStates(commands.Cog, CogBase):
             workbook, sheet_name, _duplicate_template_sheet
         )
         record = {
-            "time": datetime.datetime.now().strftime(TIME_FORMAT),
+            "time": datetime.datetime.now(tz=JST).strftime(TIME_FORMAT),
             "user_name": member.display_name,
             "user_id": str(member.id),
         }
