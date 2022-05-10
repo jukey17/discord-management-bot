@@ -13,7 +13,8 @@ from cogs.cog import CogBase
 from utils.gspread_client import GSpreadClient, get_or_add_worksheet
 from utils.misc import get_before_after_jst, parse_json
 
-TIME_FORMAT = "%Y/%m/%d %H:%M:%S.%f"
+DATE_FORMAT = "%Y/%m/%d"
+TIME_FORMAT = "%H:%M:%S.%f"
 JST = datetime.timezone(datetime.timedelta(hours=9), "JST")
 
 
@@ -70,18 +71,31 @@ class LoggingVoiceStates(commands.Cog, CogBase):
 
         records = []
         for record in worksheet.get_all_records():
+            date = datetime.datetime.strptime(
+                record["date"],
+                DATE_FORMAT,
+            )
             time = datetime.datetime.strptime(
                 record["time"],
                 TIME_FORMAT,
             )
+            dt = datetime.datetime(
+                year=date.year,
+                month=date.month,
+                day=date.day,
+                hour=time.hour,
+                minute=time.hour,
+                second=time.second,
+                microsecond=time.microsecond,
+            )
             if self._after is not None and self._before is not None:
-                if self._after < time < self._before:
+                if self._after < dt < self._before:
                     records.append(record)
             elif self._after is None and self._before is not None:
-                if time < self._before:
+                if dt < self._before:
                     records.append(record)
             elif self._after is not None and self._before is None:
-                if self._after < time:
+                if self._after < dt:
                     records.append(record)
             else:
                 records.append(record)
@@ -122,7 +136,9 @@ class LoggingVoiceStates(commands.Cog, CogBase):
                 )
 
         if self._before is None:
-            before_str = datetime.datetime.now().strftime("%Y/%m/%d")
+            before_str = (
+                datetime.datetime.now().replace(tzinfo=JST).strftime("%Y/%m/%d")
+            )
         else:
             before_str = self._before.strftime("%Y/%m/%d")
         if self._after is None:
@@ -154,8 +170,11 @@ class LoggingVoiceStates(commands.Cog, CogBase):
         worksheet = get_or_add_worksheet(
             workbook, sheet_name, _duplicate_template_sheet
         )
+
+        now = datetime.datetime.now(tz=JST)
         record = {
-            "time": datetime.datetime.now(tz=JST).strftime(TIME_FORMAT),
+            "date": now.date().strftime(DATE_FORMAT),
+            "time": now.time().strftime(TIME_FORMAT),
             "user_name": member.display_name,
             "user_id": str(member.id),
         }
