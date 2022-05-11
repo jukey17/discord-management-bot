@@ -218,7 +218,7 @@ class LoggingVoiceStates(commands.Cog, CogBase):
             state.append("video_off")
 
         record["state"] = ",".join(sorted(set(state), key=state.index))
-        worksheet.append_row(list(record.values()))
+        worksheet.append_row(list(record.values()), value_input_option="USER_ENTERED")
         print(f"append record: {record}")
 
 
