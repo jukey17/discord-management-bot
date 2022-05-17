@@ -11,10 +11,10 @@ from discord.ext import commands
 
 from cogs.cog import CogBase
 from utils.gspread_client import GSpreadClient, get_or_add_worksheet
-from utils.misc import get_before_after_jst, parse_json
+from utils.misc import get_before_after_jst, parse_json, get_modified_datetime
 
 DATE_FORMAT = "%Y/%m/%d"
-TIME_FORMAT = "%H:%M:%S.%f"
+TIME_FORMAT = "%H:%M:%S"
 JST = datetime.timezone(datetime.timedelta(hours=9), "JST")
 
 
@@ -171,10 +171,16 @@ class LoggingVoiceStates(commands.Cog, CogBase):
             workbook, sheet_name, _duplicate_template_sheet
         )
 
-        now = datetime.datetime.now(tz=JST)
+        when_date_changed = datetime.datetime.strptime(
+            os.environ["LOGGING_VOICE_STATES_WHEN_DATE_CHANGED"], TIME_FORMAT
+        ).time()
+        year, month, day, hour, minute, second, microsecond = get_modified_datetime(
+            datetime.datetime.now(tz=JST), when_date_changed
+        )
+
         record = {
-            "date": now.date().strftime(DATE_FORMAT),
-            "time": now.time().strftime(TIME_FORMAT),
+            "date": f"{year:04}/{month:02}/{day:02}",
+            "time": f"{hour:02}:{minute:02}:{second:02}.{microsecond:06}",
             "user_name": member.display_name,
             "user_id": str(member.id),
         }

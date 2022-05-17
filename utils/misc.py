@@ -42,6 +42,36 @@ def get_before_after_jst(
     return before, after
 
 
+def get_modified_datetime(
+    target: datetime.datetime, when_date_changed: datetime.time
+) -> (int, int, int, int, int, int, int):
+
+    # 対象の日時が日付変更タイミングを超えていたら
+    if when_date_changed <= target.time():
+        # そのまま使う
+        return (
+            target.year,
+            target.month,
+            target.day,
+            target.hour,
+            target.minute,
+            target.second,
+            target.microsecond,
+        )
+
+    # 日付を一日戻して時間を24時間表記にする
+    modified_date = target.date() - datetime.timedelta(days=1)
+    return (
+        modified_date.year,
+        modified_date.month,
+        modified_date.day,
+        24 + target.hour,
+        target.minute,
+        target.second,
+        target.microsecond,
+    )
+
+
 def parse_json(obj):
     if isinstance(obj, datetime.datetime):
         # 正式な区切り文字はTらしいが素人目では見にくいのでとりあえず半角スペースにしている
