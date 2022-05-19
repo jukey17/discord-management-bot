@@ -1,6 +1,12 @@
 import copy
+import datetime
+from typing import Optional
+
 import discord
 import discord.abc
+from discord import Guild
+
+from cogs.constant import Constant
 
 
 async def find_channel(
@@ -58,3 +64,31 @@ async def find_reaction_users(message: discord.Message, emoji: str) -> list:
     if target is None:
         return []
     return [user async for user in target.users()]
+
+
+def convert_to_utc_naive_datetime(dt: datetime.datetime) -> Optional[datetime.datetime]:
+    if dt is None:
+        return None
+    return dt.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+
+
+def get_before_after_str(
+    before: datetime.datetime,
+    after: datetime.datetime,
+    guild: Guild,
+    tz: datetime.timezone,
+) -> (str, str):
+    if before is None:
+        before_str = datetime.datetime.now(tz=tz).strftime(Constant.DATE_FORMAT)
+    else:
+        before_str = before.strftime(Constant.DATE_FORMAT)
+    if after is None:
+        after_str = (
+            guild.created_at.replace(tzinfo=datetime.timezone.utc)
+            .astimezone(Constant.JST)
+            .strftime(Constant.DATE_FORMAT)
+        )
+    else:
+        after_str = after.replace(tzinfo=tz).strftime(Constant.DATE_FORMAT)
+
+    return before_str, after_str

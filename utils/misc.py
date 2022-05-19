@@ -1,12 +1,12 @@
 import datetime
 import re
-from typing import Optional
+from typing import Optional, List, Callable, Any, Dict
 
 from utils.constant import Constant
 
 
-def parse_args(args):
-    parsed = {}
+def parse_args(args) -> Dict[str, str]:
+    parsed: Dict[str, str] = {}
     for arg in args:
         result = re.match(r"(.*)=(.*)", arg)
         if result is None:
@@ -17,14 +17,26 @@ def parse_args(args):
     return parsed
 
 
-def get_boolean(dic: dict, key, default: bool = False) -> bool:
+def get_boolean(dic: Dict[str, str], key: str, default: bool = False) -> bool:
     if key not in dic:
         return default
     return True if dic[key].lower() != "false" else False
 
 
+def get_array(
+    dic: Dict[str, str],
+    key: str,
+    delimiter: str,
+    func: Callable[[str], Any],
+    default: List[int],
+) -> List[Any]:
+    if key not in dic:
+        return default
+    return [func(value) for value in dic[key].split(delimiter)]
+
+
 def get_before_after_jst(
-    args: dict, to_aware: bool = True
+    args: Dict[str, str], to_aware: bool = True
 ) -> (datetime.datetime, datetime.datetime):
     before: Optional[datetime.datetime] = None
     after: Optional[datetime.datetime] = None

@@ -2,13 +2,15 @@ import contextlib
 import csv
 import datetime
 import io
-from typing import Optional
+from typing import Optional, Dict
 
 import discord
 import discord.ext
 
 import utils.misc
+import utils.discord
 from cogs.cog import CogBase
+from cogs.constant import Constant
 
 
 class _MessageCounter:
@@ -57,23 +59,18 @@ class MessageCount(discord.ext.commands.Cog, CogBase):
     async def message_count(self, ctx, *args):
         await self.execute(ctx, args)
 
-    def _parse_args(self, args: dict):
-        self._channel_ids = [
-            int(channel_id) for channel_id in args["channel"].split(",")
-        ]
+    def _parse_args(self, args: Dict[str, str]):
+        self._channel_ids = utils.misc.get_array(
+            args, "channel", ",", lambda value: int(value), []
+        )
         self._before, self._after = utils.misc.get_before_after_jst(args)
 
     async def _execute(self, ctx: discord.ext.commands.context.Context):
-        before: Optional[datetime.datetime] = None
-        if self._before is not None:
-            before = self._before.astimezone(datetime.timezone.utc).replace(tzinfo=None)
-
-        after: Optional[datetime.datetime] = None
-        if self._after is not None:
-            after = self._after.astimezone(datetime.timezone.utc).replace(tzinfo=None)
-
-        before_str = "None" if before is None else self._before.strftime("%Y-%m-%d")
-        after_str = "None" if after is None else self._after.strftime("%Y-%m-%d")
+        before = utils.discord.convert_to_utc_naive_datetime(self._before)
+        after = utils.discord.convert_to_utc_naive_datetime(self._after)
+        before_str, after_str = utils.discord.get_before_after_str(
+            self._before, self._after, ctx.guild, Constant.JST
+        )
 
         channels = [
             ctx.guild.get_channel(channel_id) for channel_id in self._channel_ids

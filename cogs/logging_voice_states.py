@@ -3,12 +3,13 @@ import datetime
 import io
 import json
 import os
-from typing import Optional, List
+from typing import Optional, List, Dict
 
 import discord
 import gspread
 from discord.ext import commands
 
+import utils.discord
 import utils.misc
 import utils.gspread_client
 from cogs.cog import CogBase
@@ -30,7 +31,6 @@ class LoggingVoiceStates(commands.Cog, CogBase):
         self.bot = bot
         self._gspread_client = GSpreadClient()
         self._count: Optional[str] = None
-        self._user_id: Optional[int] = None
         self._user_ids: List[int]
         self._channel_ids: List[int]
         self._before: Optional[datetime.datetime] = None
@@ -40,18 +40,13 @@ class LoggingVoiceStates(commands.Cog, CogBase):
     async def logging_voice_states(self, ctx, *args):
         await self.execute(ctx, args)
 
-    def _parse_args(self, args: dict):
+    def _parse_args(self, args: Dict[str, str]):
         self._count = args.get("count", None)
-        self._user_id = args.get("user", None)
-        self._user_ids = (
-            [int(user_id) for user_id in args["user"].split(",")]
-            if "user" in args
-            else []
+        self._user_ids = utils.misc.get_array(
+            args, "user", ",", lambda value: int(value), []
         )
-        self._channel_ids = (
-            [int(channel_id) for channel_id in args["channel"].split(",")]
-            if "channel" in args
-            else []
+        self._channel_ids = utils.misc.get_array(
+            args, "channel", ",", lambda value: int(value), []
         )
         self._before, self._after = utils.misc.get_before_after_jst(args, False)
 
@@ -133,22 +128,9 @@ class LoggingVoiceStates(commands.Cog, CogBase):
                     }
                 )
 
-        if self._before is None:
-            before_str = (
-                datetime.datetime.now()
-                .replace(tzinfo=Constant.JST)
-                .strftime(Constant.DATE_FORMAT)
-            )
-        else:
-            before_str = self._before.strftime(Constant.DATE_FORMAT)
-        if self._after is None:
-            after_str = (
-                ctx.guild.created_at.replace(tzinfo=datetime.timezone.utc)
-                .astimezone(Constant.JST)
-                .strftime(Constant.DATE_FORMAT)
-            )
-        else:
-            after_str = self._after.strftime(Constant.DATE_FORMAT)
+        before_str, after_str = utils.discord.get_before_after_str(
+            self._before, self._after, ctx.guild, Constant.JST
+        )
 
         filename = f"logging_voice_states_count_{self._count}_{before_str}_{after_str}"
         with contextlib.closing(io.StringIO()) as buffer:

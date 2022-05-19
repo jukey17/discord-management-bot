@@ -2,7 +2,7 @@ import contextlib
 import io
 import json
 import os
-from typing import Optional
+from typing import Optional, Dict
 
 import discord.ext.commands
 import gspread
@@ -218,7 +218,7 @@ class MentionToReactionUsers(discord.ext.commands.Cog, CogBase):
     async def mention_to_reaction_users(self, ctx, *args):
         await self.execute(ctx, args)
 
-    def _parse_args(self, args: dict):
+    def _parse_args(self, args: Dict[str, str]):
         use_manage = utils.misc.get_boolean(args, "manage")
         if use_manage:
             self._manage_command = _ManageCommand()
