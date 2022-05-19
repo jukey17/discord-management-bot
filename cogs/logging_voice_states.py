@@ -10,12 +10,9 @@ import gspread
 from discord.ext import commands
 
 from cogs.cog import CogBase
+from cogs.constant import Constant
 from utils.gspread_client import GSpreadClient, get_or_add_worksheet
 from utils.misc import get_before_after_jst, parse_json, get_modified_datetime
-
-DATE_FORMAT = "%Y/%m/%d"
-TIME_FORMAT = "%H:%M:%S"
-JST = datetime.timezone(datetime.timedelta(hours=9), "JST")
 
 
 def _duplicate_template_sheet(
@@ -73,11 +70,11 @@ class LoggingVoiceStates(commands.Cog, CogBase):
         for record in worksheet.get_all_records():
             date = datetime.datetime.strptime(
                 record["date"],
-                DATE_FORMAT,
+                Constant.DATE_FORMAT,
             )
             time = datetime.datetime.strptime(
                 record["time"],
-                TIME_FORMAT,
+                Constant.TIME_FORMAT,
             )
             dt = datetime.datetime(
                 year=date.year,
@@ -137,18 +134,20 @@ class LoggingVoiceStates(commands.Cog, CogBase):
 
         if self._before is None:
             before_str = (
-                datetime.datetime.now().replace(tzinfo=JST).strftime("%Y/%m/%d")
+                datetime.datetime.now()
+                .replace(tzinfo=Constant.JST)
+                .strftime(Constant.DATE_FORMAT)
             )
         else:
-            before_str = self._before.strftime("%Y/%m/%d")
+            before_str = self._before.strftime(Constant.DATE_FORMAT)
         if self._after is None:
             after_str = (
                 ctx.guild.created_at.replace(tzinfo=datetime.timezone.utc)
-                .astimezone(JST)
-                .strftime("%Y/%m/%d")
+                .astimezone(Constant.JST)
+                .strftime(Constant.DATE_FORMAT)
             )
         else:
-            after_str = self._after.strftime("%Y/%m/%d")
+            after_str = self._after.strftime(Constant.DATE_FORMAT)
 
         filename = f"logging_voice_states_count_{self._count}_{before_str}_{after_str}"
         with contextlib.closing(io.StringIO()) as buffer:
@@ -171,11 +170,12 @@ class LoggingVoiceStates(commands.Cog, CogBase):
             workbook, sheet_name, _duplicate_template_sheet
         )
 
+        when_date_changed_str = os.environ["LOGGING_VOICE_STATES_WHEN_DATE_CHANGED"]
         when_date_changed = datetime.datetime.strptime(
-            os.environ["LOGGING_VOICE_STATES_WHEN_DATE_CHANGED"], TIME_FORMAT
+            when_date_changed_str, Constant.TIME_FORMAT
         ).time()
         year, month, day, hour, minute, second, microsecond = get_modified_datetime(
-            datetime.datetime.now(tz=JST), when_date_changed
+            datetime.datetime.now(tz=Constant.JST), when_date_changed
         )
 
         record = {

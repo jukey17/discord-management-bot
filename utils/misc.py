@@ -2,6 +2,8 @@ import datetime
 import re
 from typing import Optional
 
+from utils.constant import Constant
+
 
 def parse_args(args):
     parsed = {}
@@ -26,15 +28,14 @@ def get_before_after_jst(
 ) -> (datetime.datetime, datetime.datetime):
     before: Optional[datetime.datetime] = None
     after: Optional[datetime.datetime] = None
-    jst = datetime.timezone(datetime.timedelta(hours=9), "JST")
     if "before" in args:
         before = datetime.datetime.strptime(args["before"], "%Y-%m-%d")
         if to_aware:
-            before = before.replace(tzinfo=jst)
+            before = before.replace(tzinfo=Constant.JST)
     if "after" in args:
         after = datetime.datetime.strptime(args["after"], "%Y-%m-%d")
         if to_aware:
-            after = after.replace(tzinfo=jst)
+            after = after.replace(tzinfo=Constant.JST)
 
     if after is not None and before is not None and after > before:
         raise ValueError("before must be a future than after.")
