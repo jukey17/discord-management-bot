@@ -9,10 +9,11 @@ import discord
 import gspread
 from discord.ext import commands
 
+import utils.misc
+import utils.gspread_client
 from cogs.cog import CogBase
 from cogs.constant import Constant
-from utils.gspread_client import GSpreadClient, get_or_add_worksheet
-from utils.misc import get_before_after_jst, parse_json, get_modified_datetime
+from utils.gspread_client import GSpreadClient
 
 
 def _duplicate_template_sheet(
@@ -52,7 +53,7 @@ class LoggingVoiceStates(commands.Cog, CogBase):
             if "channel" in args
             else []
         )
-        self._before, self._after = get_before_after_jst(args, False)
+        self._before, self._after = utils.misc.get_before_after_jst(args, False)
 
     async def _execute(self, ctx: discord.ext.commands.context.Context):
         if self._count is not None:
@@ -62,7 +63,7 @@ class LoggingVoiceStates(commands.Cog, CogBase):
         sheet_id = os.environ["LOGGING_VOICE_STATES_SHEET_ID"]
         workbook = self._gspread_client.open_by_key(sheet_id)
         sheet_name = str(ctx.guild.id)
-        worksheet = get_or_add_worksheet(
+        worksheet = utils.gspread_client.get_or_add_worksheet(
             workbook, sheet_name, _duplicate_template_sheet
         )
 
@@ -154,7 +155,7 @@ class LoggingVoiceStates(commands.Cog, CogBase):
             json.dump(
                 results,
                 buffer,
-                default=parse_json,
+                default=utils.misc.parse_json,
                 indent=2,
                 ensure_ascii=False,
             )
@@ -166,7 +167,7 @@ class LoggingVoiceStates(commands.Cog, CogBase):
         sheet_id = os.environ["LOGGING_VOICE_STATES_SHEET_ID"]
         workbook = self._gspread_client.open_by_key(sheet_id)
         sheet_name = str(member.guild.id)
-        worksheet = get_or_add_worksheet(
+        worksheet = utils.gspread_client.get_or_add_worksheet(
             workbook, sheet_name, _duplicate_template_sheet
         )
 
@@ -174,7 +175,15 @@ class LoggingVoiceStates(commands.Cog, CogBase):
         when_date_changed = datetime.datetime.strptime(
             when_date_changed_str, Constant.TIME_FORMAT
         ).time()
-        year, month, day, hour, minute, second, microsecond = get_modified_datetime(
+        (
+            year,
+            month,
+            day,
+            hour,
+            minute,
+            second,
+            microsecond,
+        ) = utils.misc.get_modified_datetime(
             datetime.datetime.now(tz=Constant.JST), when_date_changed
         )
 

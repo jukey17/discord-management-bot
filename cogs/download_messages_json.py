@@ -7,8 +7,8 @@ from typing import Optional
 import discord
 import discord.ext
 
+import utils.misc
 from cogs.cog import CogBase
-from utils.misc import get_before_after_jst, parse_json
 
 
 class DownloadMessageJson(discord.ext.commands.Cog, CogBase):
@@ -25,7 +25,7 @@ class DownloadMessageJson(discord.ext.commands.Cog, CogBase):
 
     def _parse_args(self, args: dict):
         self._channel_id = int(args.get("channel", None))
-        self._before, self._after = get_before_after_jst(args)
+        self._before, self._after = utils.misc.get_before_after_jst(args)
 
     async def _execute(self, ctx: discord.ext.commands.context.Context):
         channel = ctx.guild.get_channel(self._channel_id)
@@ -69,7 +69,7 @@ class DownloadMessageJson(discord.ext.commands.Cog, CogBase):
             json.dump(
                 outputs,
                 buffer,
-                default=parse_json,
+                default=utils.misc.parse_json,
                 indent=2,
                 ensure_ascii=False,
             )

@@ -7,8 +7,8 @@ from typing import Optional
 import discord
 import discord.ext
 
+import utils.misc
 from cogs.cog import CogBase
-from utils.misc import get_before_after_jst
 
 
 class _MessageCounter:
@@ -61,7 +61,7 @@ class MessageCount(discord.ext.commands.Cog, CogBase):
         self._channel_ids = [
             int(channel_id) for channel_id in args["channel"].split(",")
         ]
-        self._before, self._after = get_before_after_jst(args)
+        self._before, self._after = utils.misc.get_before_after_jst(args)
 
     async def _execute(self, ctx: discord.ext.commands.context.Context):
         before: Optional[datetime.datetime] = None

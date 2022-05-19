@@ -8,10 +8,10 @@ import discord.ext.commands
 import gspread
 import dispander.module
 
+import utils.misc
 from cogs.cog import CogBase
 from utils.discord import find_channel, find_reaction_users, find_no_reaction_users
 from utils.gspread_client import GSpreadClient
-from utils.misc import get_boolean, parse_json
 
 
 class _NormalCommand:
@@ -23,7 +23,7 @@ class _NormalCommand:
 
     def parse_args(self, args: dict):
         # 通常モードではignore_listはデフォルトで利用する
-        self._use_ignore_list = get_boolean(args, "ignore_list", True)
+        self._use_ignore_list = utils.misc.get_boolean(args, "ignore_list", True)
         self._message_id = int(args["message"])
         self._reaction_emoji = args["reaction"]
 
@@ -101,11 +101,11 @@ class _ManageCommand:
         self._show = False
 
     def parse_args(self, args: dict):
-        self._use_ignore_list = get_boolean(args, "ignore_list")
-        self._download = get_boolean(args, "download")
+        self._use_ignore_list = utils.misc.get_boolean(args, "ignore_list")
+        self._download = utils.misc.get_boolean(args, "download")
         self._append = args.get("append", None)
         self._remove = args.get("remove", None)
-        self._show = get_boolean(args, "show")
+        self._show = utils.misc.get_boolean(args, "show")
 
     async def execute(
         self,
@@ -153,7 +153,7 @@ class _ManageCommand:
                 json.dump(
                     ignore_dict,
                     buffer,
-                    default=parse_json,
+                    default=utils.misc.parse_json,
                     indent=2,
                     ensure_ascii=False,
                 )
@@ -219,7 +219,7 @@ class MentionToReactionUsers(discord.ext.commands.Cog, CogBase):
         await self.execute(ctx, args)
 
     def _parse_args(self, args: dict):
-        use_manage = get_boolean(args, "manage")
+        use_manage = utils.misc.get_boolean(args, "manage")
         if use_manage:
             self._manage_command = _ManageCommand()
             self._manage_command.parse_args(args)

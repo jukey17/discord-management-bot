@@ -4,8 +4,8 @@ from typing import List, Optional
 
 import discord.ext
 
+import utils.misc
 from cogs.cog import CogBase
-from utils.misc import get_before_after_jst
 
 
 class _SortOrder(Enum):
@@ -52,7 +52,7 @@ class EmojiCount(discord.ext.commands.Cog, CogBase):
             if "channel" in args
             else []
         )
-        self._before, self._after = get_before_after_jst(args)
+        self._before, self._after = utils.misc.get_before_after_jst(args)
         order = args.get("order", None)
         if order is not None:
             self._order = (
