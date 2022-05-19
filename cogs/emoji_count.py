@@ -40,6 +40,7 @@ class EmojiCount(discord.ext.commands.Cog, CogBase):
         self._after: Optional[datetime.datetime] = None
         self._order = _SortOrder.ASCENDING
         self._rank = 10
+        self._bot = False
 
     @discord.ext.commands.command()
     async def emoji_count(self, ctx, *args):
@@ -59,6 +60,7 @@ class EmojiCount(discord.ext.commands.Cog, CogBase):
             )
         if "rank" in args:
             self._rank = int(args["rank"])
+        self._bot = utils.misc.get_boolean(args, False)
 
     async def _execute(self, ctx: discord.ext.commands.context.Context):
         before: Optional[datetime.datetime] = None
@@ -113,12 +115,19 @@ class EmojiCount(discord.ext.commands.Cog, CogBase):
                     for counter in counters:
                         # メッセージ内に使われているかのカウント
                         if counter.emoji.name in message.content:
-                            counter.increment(_EmojiCountType.MESSAGE_CONTENT)
+                            # BOTを弾く
+                            if self._bot or not message.author.bot:
+                                counter.increment(_EmojiCountType.MESSAGE_CONTENT)
                         # リアクションに使われているかのカウント
                         for reaction in message.reactions:
                             if not isinstance(reaction.emoji, discord.Emoji):
                                 continue
                             if reaction.emoji.id != counter.emoji.id:
+                                continue
+                            # BOTを弾く
+                            if not self._bot and all(
+                                [user.bot for user in reaction.users]
+                            ):
                                 continue
                             counter.increment(_EmojiCountType.MESSAGE_REACTION)
 
@@ -129,9 +138,9 @@ class EmojiCount(discord.ext.commands.Cog, CogBase):
         )[0:rank]
 
         if self._order == _SortOrder.DESCENDING:
-            title = f"カスタム絵文字 ランキング ベスト{rank}"
+            title = f"カスタム絵文字 利用ランキング ベスト{rank}"
         else:
-            title = f"カスタム絵文字 ランキング ワースト{rank}"
+            title = f"カスタム絵文字 利用ランキング ワースト{rank}"
         description = f"{after_str} ~ {before_str}"
         embed = discord.Embed(title=title, description=description)
         for index, counter in enumerate(sorted_counters):
