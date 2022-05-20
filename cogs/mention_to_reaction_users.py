@@ -41,7 +41,10 @@ class _NormalCommand:
         channel, message = await find_text_channel(ctx.guild, self._message_id)
 
         if channel is None:
-            await ctx.send("チャンネルが見つかりませんでした。引数のメッセージIDが正しいか確認してください。")
+            logger.error(f"not found channel, message_id={self._message_id}")
+            await ctx.send(
+                f"チャンネルが見つかりませんでした。メッセージID: `{self._message_id}` が正しいか確認してください。"
+            )
             return
 
         logger.debug(
