@@ -15,7 +15,7 @@ class CogBase:
 
     async def execute(self, ctx: discord.ext.commands.context.Context, args):
         logger.debug(
-            f"{ctx.command} executor={ctx.author}, channel={ctx.channel}, time={datetime.datetime.now()}"
+            f"{ctx.command} executor={ctx.author}, guild={ctx.guild}, channel={ctx.channel}, args={args}"
         )
 
         if ctx.author.bot:
