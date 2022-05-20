@@ -33,12 +33,16 @@ class DownloadMessageJson(discord.ext.commands.Cog, CogBase):
 
     async def _execute(self, ctx: discord.ext.commands.context.Context):
         channel = ctx.guild.get_channel(self._channel_id)
-
         if channel is None:
-            raise ValueError(f"not found channel, message_id={self._channel_id}")
-
-        if channel.type != discord.ChannelType.text:
-            raise TypeError(f"{channel.name} is not TextChannel: type={channel.type}")
+            logger.error(f"not found channel, channel_id={self._channel_id}")
+            await ctx.send(
+                f"チャンネルが見つかりませんでした。チャンネルID: `{self._channel_id}` が正しいか確認してください。"
+            )
+            return
+        if not isinstance(channel, discord.TextChannel):
+            logger.error(f"not discord.TextChannel, channel={channel}")
+            await ctx.send(f"{channel} はテキストチャンネルではありません。")
+            return
 
         before = utils.discord.convert_to_utc_naive_datetime(self._before)
         after = utils.discord.convert_to_utc_naive_datetime(self._after)
@@ -62,7 +66,9 @@ class DownloadMessageJson(discord.ext.commands.Cog, CogBase):
                 result["edited_at"] = message.edited_at.astimezone(Constant.JST)
             results.append(result)
 
-        filename = f"{channel.id}_{after_str}_{before_str}_messages.json"
+        filename = f"{channel.id}_messages_{after_str}_{before_str}.json".replace(
+            "/", ""
+        )
         logger.debug(f"create {filename}")
         with contextlib.closing(io.StringIO()) as buffer:
             json.dump(
@@ -74,8 +80,11 @@ class DownloadMessageJson(discord.ext.commands.Cog, CogBase):
             )
             buffer.seek(0)
             logger.debug(f"send {filename}")
-            texts = [f"#{channel.name}", f"{after_str} ~ {before_str}"]
-            await ctx.send("\n".join(texts), file=discord.File(buffer, filename))
+            title = "/download_messages_json"
+            description = f"集計期間: {after_str} ~ {before_str}"
+            embed = discord.Embed(title=title, description=description)
+            embed.add_field(name=f"#{channel.name}", value=channel.id)
+            await ctx.send(embed=embed, file=discord.File(buffer, filename))
 
 
 def setup(bot):
