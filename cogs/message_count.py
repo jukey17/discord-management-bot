@@ -75,19 +75,22 @@ class MessageCount(discord.ext.commands.Cog, CogBase):
             self._before, self._after, ctx.guild, Constant.JST
         )
 
-        channels = [
-            ctx.guild.get_channel(channel_id) for channel_id in self._channel_ids
-        ]
         result_map = {}
         for channel_id in self._channel_ids:
             channel = ctx.guild.get_channel(channel_id)
             if channel is None:
-                raise ValueError(f"not found channel: id={channel_id}")
+                logger.error(f"not found channel, channel_id={channel_id}")
+                await ctx.send(
+                    f"チャンネルが見つかりませんでした。チャンネルID: `{channel_id}` が正しいか確認してください。"
+                )
+                continue
             if not isinstance(channel, discord.TextChannel):
-                raise TypeError(f"{type(channel)} is not TextChannel")
+                logger.error(f"not discord.TextChannel, channel={channel}")
+                await ctx.send(f"{channel} はテキストチャンネルではありません。")
+                continue
 
             logger.debug(
-                f"{channel.name} count from history, after={after_str} before={before_str}"
+                f"{channel} count from history, after={after_str} before={before_str}"
             )
             message_counters = await self._count_messages(
                 ctx.guild, channel, before, after
@@ -96,7 +99,7 @@ class MessageCount(discord.ext.commands.Cog, CogBase):
 
         results = self._convert_to_message_count_result(result_map)
 
-        filename = f"message_count_{after_str}_{before_str}.csv"
+        filename = f"message_count_{after_str}_{before_str}.csv".replace("/", "")
         logger.debug(f"create {filename} buffer")
         with contextlib.closing(io.StringIO()) as buffer:
             fieldnames = ["user"]
@@ -110,9 +113,13 @@ class MessageCount(discord.ext.commands.Cog, CogBase):
             buffer.seek(0)
 
             logger.debug(f"send {filename}")
-            channel_names = ",".join([f"#{channel.name}" for channel in channels])
-            outputs = [f"{[channel_names]}", f"{after_str} ~ {before_str}"]
-            await ctx.send("\n".join(outputs), file=discord.File(buffer, filename))
+
+            title = "/message_count"
+            description = f"集計期間: {after_str} ~ {before_str}"
+            embed = discord.Embed(title=title, description=description)
+            for channel in result_map.keys():
+                embed.add_field(name=f"#{channel.name}", value=channel.id)
+            await ctx.send(embed=embed, file=discord.File(buffer, filename))
 
     @staticmethod
     async def _count_messages(
@@ -134,7 +141,9 @@ class MessageCount(discord.ext.commands.Cog, CogBase):
         return message_counters
 
     @staticmethod
-    def _convert_to_message_count_result(counter_map: dict):
+    def _convert_to_message_count_result(
+        counter_map: Dict[discord.TextChannel, List[_MessageCounter]]
+    ):
         results = {}
         for channel, message_counters in counter_map.items():
             for counter in message_counters:
