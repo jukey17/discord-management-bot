@@ -31,8 +31,7 @@ def _duplicate_template_sheet(
 
 class LoggingVoiceStates(commands.Cog, CogBase):
     def __init__(self, bot):
-        CogBase.__init__(self)
-        self.bot = bot
+        CogBase.__init__(self, bot)
         self._gspread_client = GSpreadClient()
         self._count: Optional[str] = None
         self._user_ids: List[int]

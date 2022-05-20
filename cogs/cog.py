@@ -10,8 +10,8 @@ logger = logging.getLogger(__name__)
 
 
 class CogBase:
-    def __init__(self):
-        pass
+    def __init__(self, bot):
+        self.bot = bot
 
     async def execute(self, ctx: discord.ext.commands.context.Context, args):
         logger.debug(

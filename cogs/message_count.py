@@ -3,7 +3,7 @@ import csv
 import datetime
 import io
 import logging
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
 import discord
 import discord.ext
@@ -53,9 +53,8 @@ class _MessageCountResult:
 
 class MessageCount(discord.ext.commands.Cog, CogBase):
     def __init__(self, bot):
-        CogBase.__init__(self)
-        self.bot = bot
-        self._channel_ids: Optional[list] = None
+        CogBase.__init__(self, bot)
+        self._channel_ids: List[int]
         self._before: Optional[datetime.datetime] = None
         self._after: Optional[datetime.datetime] = None
 

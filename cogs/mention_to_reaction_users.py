@@ -275,8 +275,7 @@ class _ManageCommand:
 
 class MentionToReactionUsers(discord.ext.commands.Cog, CogBase):
     def __init__(self, bot):
-        CogBase.__init__(self)
-        self.bot = bot
+        CogBase.__init__(self, bot)
         self._gspread_client = GSpreadClient()
         self._normal_command: Optional[_NormalCommand] = None
         self._manage_command: Optional[_ManageCommand] = None

@@ -18,8 +18,7 @@ logger = logging.getLogger(__name__)
 
 class DownloadMessageJson(discord.ext.commands.Cog, CogBase):
     def __init__(self, bot):
-        CogBase.__init__(self)
-        self.bot = bot
+        CogBase.__init__(self, bot)
         self._channel_id: Optional[int] = None
         self._before: Optional[datetime.datetime] = None
         self._after: Optional[datetime.datetime] = None

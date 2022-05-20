@@ -46,8 +46,7 @@ class _Constant(cogs.constant.Constant):
 
 class EmojiCount(discord.ext.commands.Cog, CogBase):
     def __init__(self, bot):
-        CogBase.__init__(self)
-        self.bot = bot
+        CogBase.__init__(self, bot)
         self._channel_ids: List[int]
         self._before: Optional[datetime.datetime] = None
         self._after: Optional[datetime.datetime] = None
