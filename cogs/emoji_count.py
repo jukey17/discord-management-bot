@@ -1,4 +1,5 @@
 import datetime
+import logging
 from enum import Enum
 from typing import List, Optional, Dict
 
@@ -8,6 +9,8 @@ import cogs.constant
 import utils.discord
 import utils.misc
 from cogs.cog import CogBase
+
+logger = logging.getLogger(__name__)
 
 
 class _SortOrder(Enum):
@@ -79,12 +82,13 @@ class EmojiCount(discord.ext.commands.Cog, CogBase):
 
         for channel in channels:
             if channel is None:
-                print("channel is None.")
+                logger.warning("channel is None.")
                 continue
             if not isinstance(channel, discord.TextChannel):
-                print(f"{channel} is Not TextChannel")
+                logger.warning(f"{channel} is not TextChannel.")
                 continue
 
+            logger.debug(f"count emoji in {channel.name} channel.")
             try:
                 messages = [
                     message
@@ -94,7 +98,7 @@ class EmojiCount(discord.ext.commands.Cog, CogBase):
                 ]
             except discord.Forbidden as e:
                 # BOTに権限がないケースはログを出力して続行
-                print(f"exception={e}, channel={channel}")
+                logger.warning(f"exception={e}, channel={channel}")
             else:
                 for message in messages:
                     for counter in counters:
@@ -142,6 +146,7 @@ class EmojiCount(discord.ext.commands.Cog, CogBase):
             embed.add_field(name=name, value=value, inline=False)
 
         # 集計結果を送信
+        logger.debug("send result")
         await ctx.send(embed=embed)
         await ctx.send(" ".join([str(counter.emoji) for counter in sorted_counters]))
 

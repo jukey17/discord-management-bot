@@ -2,6 +2,7 @@ import contextlib
 import datetime
 import io
 import json
+import logging
 import os
 from typing import Optional, List, Dict
 
@@ -17,10 +18,13 @@ from cogs.constant import Constant
 from utils.gspread_client import GSpreadClient
 
 
+logger = logging.getLogger(__name__)
+
+
 def _duplicate_template_sheet(
     workbook: gspread.Spreadsheet, name: str
 ) -> gspread.Worksheet:
-    print(f"{name} does not exist, so add a new one. ")
+    logger.debug(f"{name} does not exist, so add a new one. ")
     template = workbook.worksheet("template")
     return template.duplicate(new_sheet_name=name)
 
@@ -216,7 +220,7 @@ class LoggingVoiceStates(commands.Cog, CogBase):
 
         record["state"] = ",".join(sorted(set(state), key=state.index))
         worksheet.append_row(list(record.values()), value_input_option="USER_ENTERED")
-        print(f"append record: {record}")
+        logger.debug(f"append record: {record}")
 
 
 def setup(bot):

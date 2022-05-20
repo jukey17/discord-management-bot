@@ -2,6 +2,7 @@ import contextlib
 import datetime
 import io
 import json
+import logging
 from typing import Optional, Dict
 
 import discord
@@ -11,6 +12,8 @@ import utils.misc
 import utils.discord
 from cogs.cog import CogBase
 from cogs.constant import Constant
+
+logger = logging.getLogger(__name__)
 
 
 class DownloadMessageJson(discord.ext.commands.Cog, CogBase):
@@ -44,10 +47,12 @@ class DownloadMessageJson(discord.ext.commands.Cog, CogBase):
             self._before, self._after, ctx.guild, Constant.JST
         )
 
-        print(f"read messages from history, after={after_str} before={before_str}")
-        outputs = []
+        logger.debug(
+            f"read messages from {channel.name} history, after={after_str} before={before_str}"
+        )
+        results = []
         async for message in channel.history(limit=None, before=before, after=after):
-            message_dict = dict(
+            result = dict(
                 id=message.id,
                 author=message.author.name,
                 display_name=message.author.display_name,
@@ -55,23 +60,23 @@ class DownloadMessageJson(discord.ext.commands.Cog, CogBase):
                 message=message.content,
             )
             if message.edited_at is not None:
-                message_dict["edited_at"] = message.edited_at.astimezone(Constant.JST)
-            outputs.append(message_dict)
+                result["edited_at"] = message.edited_at.astimezone(Constant.JST)
+            results.append(result)
 
         filename = f"{channel.id}_{after_str}_{before_str}_messages.json"
-        print(f"create {filename} buffer")
+        logger.debug(f"create {filename}")
         with contextlib.closing(io.StringIO()) as buffer:
             json.dump(
-                outputs,
+                results,
                 buffer,
                 default=utils.misc.parse_json,
                 indent=2,
                 ensure_ascii=False,
             )
             buffer.seek(0)
-            print(f"send {filename}")
-            outputs = [f"#{channel.name}", f"{after_str} ~ {before_str}"]
-            await ctx.send("\n".join(outputs), file=discord.File(buffer, filename))
+            logger.debug(f"send {filename}")
+            texts = [f"#{channel.name}", f"{after_str} ~ {before_str}"]
+            await ctx.send("\n".join(texts), file=discord.File(buffer, filename))
 
 
 def setup(bot):

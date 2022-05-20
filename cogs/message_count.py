@@ -2,6 +2,7 @@ import contextlib
 import csv
 import datetime
 import io
+import logging
 from typing import Optional, Dict
 
 import discord
@@ -11,6 +12,9 @@ import utils.misc
 import utils.discord
 from cogs.cog import CogBase
 from cogs.constant import Constant
+
+
+logger = logging.getLogger(__name__)
 
 
 class _MessageCounter:
@@ -83,7 +87,7 @@ class MessageCount(discord.ext.commands.Cog, CogBase):
             if not isinstance(channel, discord.TextChannel):
                 raise TypeError(f"{type(channel)} is not TextChannel")
 
-            print(
+            logger.debug(
                 f"{channel.name} count from history, after={after_str} before={before_str}"
             )
             message_counters = await self._count_messages(
@@ -94,7 +98,7 @@ class MessageCount(discord.ext.commands.Cog, CogBase):
         results = self._convert_to_message_count_result(result_map)
 
         filename = f"message_count_{after_str}_{before_str}.csv"
-        print(f"create {filename} buffer")
+        logger.debug(f"create {filename} buffer")
         with contextlib.closing(io.StringIO()) as buffer:
             fieldnames = ["user"]
             fieldnames.extend([key.name for key in result_map.keys()])
@@ -106,7 +110,7 @@ class MessageCount(discord.ext.commands.Cog, CogBase):
                 writer.writerow(result.to_dict())
             buffer.seek(0)
 
-            print(f"send {filename}")
+            logger.debug(f"send {filename}")
             channel_names = ",".join([f"#{channel.name}" for channel in channels])
             outputs = [f"{[channel_names]}", f"{after_str} ~ {before_str}"]
             await ctx.send("\n".join(outputs), file=discord.File(buffer, filename))

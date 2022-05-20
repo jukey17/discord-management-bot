@@ -1,4 +1,6 @@
+import logging
 import os
+import sys
 import traceback
 import discord
 
@@ -20,6 +22,19 @@ class Constant(utils.constant.Constant):
     TOKEN = os.environ["DISCORD_BOT_TOKEN"]
 
 
+def init_logger():
+    logger = logging.getLogger("cogs")
+    logger.setLevel(logging.DEBUG)
+    console = logging.StreamHandler(stream=sys.stdout)
+    console.setLevel(logging.DEBUG)
+    formatter = logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(module)s %(filename)s(%(lineno)d) %(funcName)s: %(message)s"
+    )
+    console.setFormatter(formatter)
+    logger.addHandler(console)
+    return logger
+
+
 class DiscordBot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
@@ -29,16 +44,19 @@ class DiscordBot(commands.Bot):
 
         for cog in Constant.EXTENSIONS:
             self.load_extension(cog)
+        self._logger = init_logger()
 
     async def on_ready(self):
-        print(f"DiscordBot.on_ready: bot={self.user}, guilds={self.guilds}")
+        self._logger.debug(
+            f"DiscordBot.on_ready: bot={self.user}, guilds={self.guilds}"
+        )
 
     async def on_command_error(self, context, exception):
         orig_error = getattr(exception, "original", exception)
         error_msg = "".join(
             traceback.TracebackException.from_exception(orig_error).format()
         )
-        print(error_msg)
+        self._logger.error(error_msg)
         await context.send(
             "unintentional error by the developer, please check the server logs."
         )

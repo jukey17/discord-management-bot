@@ -1,9 +1,12 @@
 import datetime
+import logging
 from typing import Dict
 
 import discord.ext.commands.context
 
 import utils.misc
+
+logger = logging.getLogger(__name__)
 
 
 class CogBase:
@@ -11,12 +14,12 @@ class CogBase:
         pass
 
     async def execute(self, ctx: discord.ext.commands.context.Context, args):
-        print(
+        logger.debug(
             f"{ctx.command} executor={ctx.author}, channel={ctx.channel}, time={datetime.datetime.now()}"
         )
 
         if ctx.author.bot:
-            print("this is bot.")
+            logger.warning("this is bot.")
             return
 
         async with ctx.typing():

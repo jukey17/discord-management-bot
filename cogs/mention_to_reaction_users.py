@@ -1,6 +1,7 @@
 import contextlib
 import io
 import json
+import logging
 import os
 from typing import Optional, Dict
 
@@ -12,6 +13,9 @@ import utils.misc
 from cogs.cog import CogBase
 from utils.discord import find_channel, find_reaction_users, find_no_reaction_users
 from utils.gspread_client import GSpreadClient
+
+
+logger = logging.getLogger(__name__)
 
 
 class _NormalCommand:
@@ -35,7 +39,9 @@ class _NormalCommand:
             ignore_ids.clear()
 
         channel, message = await find_channel(ctx.guild, self._message_id)
-        print(f"fetch message: channel={channel.name}, message={message.content}")
+        logger.debug(
+            f"fetch message: channel={channel.name}, message={message.content}"
+        )
 
         if channel is None:
             raise ValueError(f"not found channel, message_id={self._message_id}")
@@ -56,18 +62,18 @@ class _NormalCommand:
 
         if self._reaction_emoji.lower() == "none":
             targets = filter_users(channel.members, message)
-            print(
+            logger.debug(
                 f"find no reaction users: target={[member.display_name for member in targets]}"
             )
             result = await find_no_reaction_users(message, targets)
         elif self._reaction_emoji.lower() == "all":
-            print("all reaction users")
+            logger.debug("find all reaction users")
             result = []
             for reaction in message.reactions:
                 users = [user async for user in reaction.users()]
                 result.extend(filter_users(users, message))
         else:
-            print(f"find reaction users: target={self._reaction_emoji}")
+            logger.debug(f"find reaction users: target={self._reaction_emoji}")
             targets = await find_reaction_users(message, self._reaction_emoji)
             result = filter_users(targets, message)
 
@@ -77,7 +83,7 @@ class _NormalCommand:
         else:
             output_text = "none!"
 
-        print(f"send: {output_text}")
+        logger.debug(f"send: {output_text}")
         await ctx.send(output_text)
 
         # copy and modify from dispander method
@@ -135,7 +141,7 @@ class _ManageCommand:
 
         if self._download:
             filename = f"ignore_list_{ctx.guild.id}.json"
-            print(
+            logger.debug(
                 f"download ignore_list: sheet_id={worksheet.id}, guild={ctx.guild.id}-> {filename}"
             )
             ignore_dict = []
@@ -162,7 +168,7 @@ class _ManageCommand:
 
         if self._append is not None:
             append_id = int(self._append)
-            print(
+            logger.debug(
                 f"append ignore_list: sheet_id={worksheet.id}, guild={ctx.guild.id}, user={append_id}"
             )
             member = ctx.guild.get_member(append_id)
@@ -180,7 +186,7 @@ class _ManageCommand:
                 output_text = "remove all from ignore_list."
             else:
                 remove_id = int(self._remove)
-                print(
+                logger.debug(
                     f"remove ignore_list: sheet_id={worksheet.id}, guild={ctx.guild.id}, user={remove_id}"
                 )
                 if remove_id not in ignore_ids:
@@ -193,7 +199,9 @@ class _ManageCommand:
             await ctx.send(output_text)
 
         if self._show:
-            print(f"show ignore_list: sheet_id={worksheet.id}, guild={ctx.guild.id}")
+            logger.debug(
+                f"show ignore_list: sheet_id={worksheet.id}, guild={ctx.guild.id}"
+            )
             outputs = [f"show ignore_list: guild={ctx.guild.name}"]
             if len(ignore_ids) == 0:
                 outputs.append("none.")
@@ -236,12 +244,12 @@ class MentionToReactionUsers(discord.ext.commands.Cog, CogBase):
         try:
             worksheet = workbook.worksheet(sheet_name)
         except gspread.exceptions.WorksheetNotFound:
-            print(f"{sheet_name} does not exist, so add a new one. ")
+            logger.warning(f"{sheet_name} does not exist, so add a new one. ")
             worksheet = workbook.add_worksheet(sheet_name, rows=100, cols=1)
         finally:
             ignore_list = worksheet.col_values(1)
             ignore_ids = [int(ignore_id) for ignore_id in ignore_list]
-        print(f"fetch ignore_ids: ignore_ids={ignore_ids}")
+        logger.debug(f"fetch ignore_ids: ignore_ids={ignore_ids}")
 
         if self._manage_command is not None:
             await self._manage_command.execute(ctx, worksheet, ignore_ids)
