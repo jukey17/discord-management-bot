@@ -67,34 +67,25 @@ class LoggingVoiceStates(commands.Cog, CogBase):
 
         records = []
         for record in worksheet.get_all_records():
-            date = datetime.datetime.strptime(
-                record["date"],
-                Constant.DATE_FORMAT,
-            )
-            time = datetime.datetime.strptime(
-                record["time"],
-                Constant.TIME_FORMAT,
-            )
-            dt = datetime.datetime(
-                year=date.year,
-                month=date.month,
-                day=date.day,
-                hour=time.hour,
-                minute=time.hour,
-                second=time.second,
-                microsecond=time.microsecond,
-            )
-            if self._after is not None and self._before is not None:
-                if self._after < dt < self._before:
-                    records.append(record)
-            elif self._after is None and self._before is not None:
-                if dt < self._before:
-                    records.append(record)
-            elif self._after is not None and self._before is None:
-                if self._after < dt:
-                    records.append(record)
+            try:
+                dt = utils.misc.back_from_modified_datetime(
+                    record["date"], record["time"]
+                )
+            except Exception as e:
+                logger.error(f"record={record}, exception={e}")
+                await ctx.send(f"日時のパースに失敗しました。 record={record}")
             else:
-                records.append(record)
+                if self._after is not None and self._before is not None:
+                    if self._after < dt < self._before:
+                        records.append(record)
+                elif self._after is None and self._before is not None:
+                    if dt < self._before:
+                        records.append(record)
+                elif self._after is not None and self._before is None:
+                    if self._after < dt:
+                        records.append(record)
+                else:
+                    records.append(record)
 
         if len(self._user_ids) > 0:
             # ユーザーIDの指定がある→指定のユーザーだけ
@@ -135,7 +126,9 @@ class LoggingVoiceStates(commands.Cog, CogBase):
             self._before, self._after, ctx.guild, Constant.JST
         )
 
-        filename = f"logging_voice_states_count_{self._count}_{before_str}_{after_str}"
+        filename = f"logging_voice_states_count_{self._count}_{before_str}_{after_str}.json".replace(
+            "/", ""
+        )
         with contextlib.closing(io.StringIO()) as buffer:
             json.dump(
                 results,
@@ -145,7 +138,7 @@ class LoggingVoiceStates(commands.Cog, CogBase):
                 ensure_ascii=False,
             )
             buffer.seek(0)
-            await ctx.send(file=discord.File(buffer, f"{filename}.json"))
+            await ctx.send(file=discord.File(buffer, filename))
 
     @commands.Cog.listener()
     async def on_voice_state_update(
