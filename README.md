@@ -113,11 +113,11 @@
 
 指定のチャンネルのメッセージをjsonとして出力します
 
-| param   | description         | default        | required |
-|---------|---------------------|----------------|----------|
-| channel | 対象のチャンネルのID         | -              | must     |
-| before  | この日付より前のメッセージを対象とする | None(全チャンネル対象) | optional |
-| after   | この日付より後のメッセージを対象とする | None(現在時刻まで)   | optional |
+| param   | description         | default         | required |
+|---------|---------------------|-----------------|----------|
+| channel | 対象のチャンネルのID         | -               | must     |
+| before  | この日付より前のメッセージを対象とする | None(サーバー開始時から) | optional |
+| after   | この日付より後のメッセージを対象とする | None(現在時刻まで)    | optional |
 
 ### `/logging_voice_states count={state} user={user_id...} channel={channel_id...} before={YYYY-MM-DD} after={YYYY-MM-DD}`
 

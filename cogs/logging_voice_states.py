@@ -154,7 +154,9 @@ class LoggingVoiceStates(commands.Cog, CogBase):
             workbook, sheet_name, _duplicate_template_sheet
         )
 
-        when_date_changed_str = os.environ["LOGGING_VOICE_STATES_WHEN_DATE_CHANGED"]
+        when_date_changed_str = os.environ.get(
+            "LOGGING_VOICE_STATES_WHEN_DATE_CHANGED", "00:00:00"
+        )
         when_date_changed = datetime.datetime.strptime(
             when_date_changed_str, Constant.TIME_FORMAT
         ).time()
