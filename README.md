@@ -2,6 +2,15 @@
 
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 
+## How to use
+
+1. Discord BOTアカウントを作成する
+2. Herokuのアカウントとアプリを作成する
+3. GCPのプロジェクトを作り、スプレッドシートにアクセスできるサービスアカウントを作成する
+4. 無視リスト用、ボイスチャットログ用のスプレッドシートを用意する
+5. HerokuのConfig Varsに後述の環境変数を設定する　
+6. HerokuでDeployして起動！
+
 ## Environment Variables
 
 利用するためには下記の環境変数の設定が必要です
@@ -96,7 +105,7 @@
 | after   | この日付より後のメッセージを対象とする        | None(現在時刻まで)    | optional |
 
 
-### `/emoji_count channel={channel_id...} before={YYYY-mm-dd} after={YYYY-mm-dd} order=ascending|descending rank={1-25} bot={True|False`
+### `/emoji_count channel={channel_id...} before={YYYY-mm-dd} after={YYYY-mm-dd} order={ascending|descending} rank={1-25} bot={True|False}`
 
 指定のチャンネルでEmojiが何回使われたのかをランキング形式で表示します
 
@@ -121,7 +130,10 @@
 
 ### `/logging_voice_states count={state} user={user_id...} channel={channel_id...} before={YYYY-MM-DD} after={YYYY-MM-DD}`
 
-ボイスチャットのユーザー毎の状態ログを取得します
+BOTを起動すると `discord.py` の `on_voice_state_update` イベントを利用して `LOGGING_VOICE_STATES_SHEET_ID` で指定したスプレッドシートに招待したDiscordサーバーのボイスチャットを監視してログを記録するようになります
+
+このコマンドでは上記で記録したログからボイスチャットのユーザー毎の状態ログを取得します
+
 
 | param   | description                | default            | required |
 |---------|----------------------------|--------------------|----------|
