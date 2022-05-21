@@ -148,7 +148,12 @@ class LoggingVoiceStates(commands.Cog, CogBase):
             await ctx.send(file=discord.File(buffer, f"{filename}.json"))
 
     @commands.Cog.listener()
-    async def on_voice_state_update(self, member, before, after):
+    async def on_voice_state_update(
+        self,
+        member: discord.Member,
+        before: discord.VoiceState,
+        after: discord.VoiceState,
+    ):
         sheet_id = os.environ["LOGGING_VOICE_STATES_SHEET_ID"]
         workbook = self._gspread_client.open_by_key(sheet_id)
         sheet_name = str(member.guild.id)
@@ -178,6 +183,7 @@ class LoggingVoiceStates(commands.Cog, CogBase):
             "user_name": member.display_name,
             "user_id": str(member.id),
         }
+
         state = []
         if before.channel is None and after.channel is not None:
             record["channel_name"] = after.channel.name
@@ -200,6 +206,14 @@ class LoggingVoiceStates(commands.Cog, CogBase):
         if before.channel is not None and after.channel is not None:
             record["channel_name"] = after.channel.name
             record["channel_id"] = str(after.channel.id)
+            # チャンネル移動
+            if before.channel.id != after.channel.id:
+                state.append("move")
+                # stream/videoはチャンネル移動で強制終了 ※mute/deafは継続するのでスルー
+                if before.self_stream:
+                    state.append("stream_end")
+                if before.self_video:
+                    state.append("video_off")
         if not before.self_mute and after.self_mute:
             state.append("mute_on")
         if before.self_mute and not after.self_mute:
@@ -216,6 +230,10 @@ class LoggingVoiceStates(commands.Cog, CogBase):
             state.append("video_on")
         if before.self_video and not after.self_video:
             state.append("video_off")
+        if not before.afk and after.afk:
+            state.append("afk_in")
+        if before.afk and not after.afk:
+            state.append("afk_out")
 
         record["state"] = ",".join(sorted(set(state), key=state.index))
         worksheet.append_row(list(record.values()), value_input_option="USER_ENTERED")
