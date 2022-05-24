@@ -1,6 +1,6 @@
 {
-  "name": "discordpy-startup",
-  "description": "Herokuでdiscord.pyを始めるテンプレート",
-  "repository": "https://github.com/DiscordBotPortalJP/discordpy-startup",
+  "name": "jukey17-discord-management-bot",
+  "description": "Discordサーバーで個人的に管理したい内容をまとめたBOT",
+  "repository": "https://github.com/jukey17/discord-management-bot",
   "keywords": ["python", "discord", "bot"]
 }
