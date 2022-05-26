@@ -10,20 +10,20 @@ from discord.ext.commands import command, Cog, Bot
 from cogs.cog import CogBase
 
 
-class Ping(Cog, CogBase):
+class GetSystemInfo(Cog, CogBase):
     def __init__(self, bot: Bot):
         CogBase.__init__(self, bot)
 
     @command()
-    async def ping(self, ctx, *args):
+    async def get_system_info(self, ctx, *args):
         await self.execute(ctx, args)
 
     def _parse_args(self, args: Dict[str, str]):
         pass
 
     async def _execute(self, ctx: discord.ext.commands.context.Context):
-        title = "/ping"
-        description = "pong!"
+        title = "/get_system_info"
+        description = f"bot={self.bot.user}"
         embed = discord.Embed(title=title, description=description)
         embed.add_field(
             name="platform.platform()", value=platform.platform(), inline=False
@@ -41,4 +41,4 @@ class Ping(Cog, CogBase):
 
 
 def setup(bot: Bot):
-    return bot.add_cog(Ping(bot))
+    return bot.add_cog(GetSystemInfo(bot))
