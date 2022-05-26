@@ -10,7 +10,7 @@ import discord.ext
 
 import utils.misc
 import utils.discord
-from cogs.cog import CogBase
+from cogs.cog import CogBase, ArgumentError
 from cogs.constant import Constant
 
 logger = logging.getLogger(__name__)
@@ -28,6 +28,9 @@ class DownloadMessageJson(discord.ext.commands.Cog, CogBase):
         await self.execute(ctx, args)
 
     def _parse_args(self, args: Dict[str, str]):
+        if "channel" not in args:
+            raise ArgumentError(channel="チャンネルIDを必ず設定してください")
+
         self._channel_id = int(args.get("channel", None))
         self._before, self._after = utils.misc.get_before_after_jst(args)
 
