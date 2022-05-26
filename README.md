@@ -128,7 +128,7 @@
 | before  | この日付より前のメッセージを対象とする | None(サーバー開始時から) | optional |
 | after   | この日付より後のメッセージを対象とする | None(現在時刻まで)    | optional |
 
-### `/logging_voice_states count={state} user={user_id...} channel={channel_id...} before={YYYY-MM-DD} after={YYYY-MM-DD}`
+### `/logging_voice_states count={state} user={user_id...} channel={channel_id...} before={YYYY-MM-DD} after={YYYY-MM-DD} minimum={True|False}`
 
 BOTを起動すると `discord.py` の `on_voice_state_update` イベントを利用して `LOGGING_VOICE_STATES_SHEET_ID` で指定したスプレッドシートに招待したDiscordサーバーのボイスチャットを監視してログを記録するようになります
 
@@ -142,6 +142,7 @@ BOTを起動すると `discord.py` の `on_voice_state_update` イベントを�
 | channel | 対象のチャンネルのID(`,` 区切りで複数指定可) | None(全ボイスチャンネル対象)  | optional |
 | before  | この日付より前のメッセージを対象とする        | None(サーバー開始時から)    | optional |
 | after   | この日付より後のメッセージを対象とする        | None(現在時刻まで)       | optional |
+| minimum | カウントが0の要素を省略します            | True               | optional |
 
 #### 状態一覧
 
