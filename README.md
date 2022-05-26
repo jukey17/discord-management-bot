@@ -160,3 +160,8 @@ BOTを起動すると `discord.py` の `on_voice_state_update` イベントを�
 | video_off    | WEBカメラを解除した     |
 | afk_in       | AFKチャンネルに入った    |
 | afk_out      | AFKチャンネルから出た    |
+
+### `/get_system_info`
+
+BOTを実行している環境の情報を取得します  
+※開発者がデバッグ用に利用するコマンドです
