@@ -134,7 +134,7 @@ class LoggingVoiceStates(commands.Cog, CogBase):
             self._before, self._after, ctx.guild, Constant.JST
         )
 
-        filename = f"logging_voice_states_count_{self._count}_{before_str}_{after_str}.json".replace(
+        filename = f"logging_voice_states_count_{self._count}_{after_str}_{before_str}.json".replace(
             "/", ""
         )
         with contextlib.closing(io.StringIO()) as buffer:
