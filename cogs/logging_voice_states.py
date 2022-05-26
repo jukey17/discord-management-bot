@@ -38,6 +38,7 @@ class LoggingVoiceStates(commands.Cog, CogBase):
         self._channel_ids: List[int]
         self._before: Optional[datetime.datetime] = None
         self._after: Optional[datetime.datetime] = None
+        self._minimum = True
 
     @commands.command()
     async def logging_voice_states(self, ctx, *args):
@@ -55,6 +56,7 @@ class LoggingVoiceStates(commands.Cog, CogBase):
             args, "channel", ",", lambda value: int(value), []
         )
         self._before, self._after = utils.misc.get_before_after_jst(args, False)
+        self._minimum = utils.misc.get_boolean(args, "minimum", True)
 
     async def _execute(self, ctx: discord.ext.commands.context.Context):
         if self._count is not None:
@@ -116,12 +118,15 @@ class LoggingVoiceStates(commands.Cog, CogBase):
                     and record["channel_id"] == channel.id
                     and self._count in record["state"]
                 ]
+                count = len(matched)
+                if self._minimum and count == 0:
+                    continue
                 results.append(
                     {
                         "user": {"id": user.id, "name": user.display_name},
                         "channel": {"id": channel.id, "name": channel.name},
                         "state": self._count,
-                        "count": len(matched),
+                        "count": count,
                     }
                 )
 
