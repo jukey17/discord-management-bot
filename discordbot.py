@@ -12,6 +12,7 @@ import utils.constant
 class Constant(utils.constant.Constant):
     EXTENSIONS = [
         "dispander",
+        "cogs.ping",
         "cogs.message_count",
         "cogs.emoji_count",
         "cogs.download_messages_json",
