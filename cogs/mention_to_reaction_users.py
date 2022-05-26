@@ -10,7 +10,7 @@ import gspread
 import dispander.module
 
 import utils.misc
-from cogs.cog import CogBase
+from cogs.cog import CogBase, ArgumentError
 from utils.discord import find_text_channel, find_reaction_users, find_no_reaction_users
 from utils.gspread_client import GSpreadClient
 
@@ -288,6 +288,11 @@ class MentionToReactionUsers(discord.ext.commands.Cog, CogBase):
         await self.execute(ctx, args)
 
     def _parse_args(self, args: Dict[str, str]):
+        if "message" not in args:
+            raise ArgumentError(message="対象のメッセージIDを必ず指定してください")
+        if "reaction" not in args:
+            raise ArgumentError(reaction="対象のリアクションを必ず指定してください")
+
         use_manage = utils.misc.get_boolean(args, "manage")
         if use_manage:
             self._manage_command = _ManageCommand()

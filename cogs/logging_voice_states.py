@@ -13,7 +13,7 @@ from discord.ext import commands
 import utils.discord
 import utils.misc
 import utils.gspread_client
-from cogs.cog import CogBase
+from cogs.cog import CogBase, ArgumentError
 from cogs.constant import Constant
 from utils.gspread_client import GSpreadClient
 
@@ -44,6 +44,9 @@ class LoggingVoiceStates(commands.Cog, CogBase):
         await self.execute(ctx, args)
 
     def _parse_args(self, args: Dict[str, str]):
+        if "count" not in args:
+            raise ArgumentError(count="対象のステートを必ず指定してください")
+
         self._count = args.get("count", None)
         self._user_ids = utils.misc.get_array(
             args, "user", ",", lambda value: int(value), []

@@ -10,9 +10,8 @@ import discord.ext
 
 import utils.misc
 import utils.discord
-from cogs.cog import CogBase
+from cogs.cog import CogBase, ArgumentError
 from cogs.constant import Constant
-
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +62,9 @@ class MessageCount(discord.ext.commands.Cog, CogBase):
         await self.execute(ctx, args)
 
     def _parse_args(self, args: Dict[str, str]):
+        if "channel" not in args:
+            raise ArgumentError(channel="チャンネルIDを一つ以上必ず設定してください")
+
         self._channel_ids = utils.misc.get_array(
             args, "channel", ",", lambda value: int(value), []
         )
