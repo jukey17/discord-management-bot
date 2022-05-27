@@ -26,17 +26,18 @@
 
 ## Feature
 
-### `/mention_to_reaction_users message={message_id} reaction={emoji} ignore_list={True|False}`
+### `/mention_to_reaction_users message={message_id} reaction={emoji} ignore_list={True|False} expand_message={True|False}`
 
 メッセージの中で指定した絵文字にリアクションしたユーザーにメンションします
 
 ※対象ユーザーは、指定したメッセージがあるチャンネルに存在するユーザー(BOTとメッセージの発言者本人を除く)
 
-| param       | description     | default | required |
-|-------------|-----------------|---------|----------|
-| message     | 対象となるメッセージのID   | −       | must     |
-| reaction    | 対象となるリアクションの絵文字 | -       | must     |
-| ignore_list | 無視リストを利用するかどうか  | True    | optional |
+| param          | description       | default | required |
+|----------------|-------------------|---------|----------|
+| message        | 対象となるメッセージのID     | −       | must     |
+| reaction       | 対象となるリアクションの絵文字   | -       | must     |
+| ignore_list    | 無視リストを利用するかどうか    | True    | optional |
+| expand_message | 対象のメッセージを展開するかどうか | False   | optional |
 
 #### examples
 
