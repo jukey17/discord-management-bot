@@ -23,13 +23,20 @@ class _NormalCommand:
         self.bot = bot
         self._message_id: Optional[int] = None
         self._reaction_emoji: Optional[str] = None
-        self._use_ignore_list: Optional[bool] = False
+        self._use_ignore_list = True
+        self._expand_message = False
 
     def parse_args(self, args: Dict[str, str]):
-        # 通常モードではignore_listはデフォルトで利用する
-        self._use_ignore_list = utils.misc.get_boolean(args, "ignore_list", True)
+        if "message" not in args:
+            raise ArgumentError(message="対象のメッセージIDを必ず指定してください")
+        if "reaction" not in args:
+            raise ArgumentError(reaction="対象のリアクションを必ず指定してください")
+
         self._message_id = int(args["message"])
         self._reaction_emoji = args["reaction"]
+        # 通常モードではignore_listはデフォルトで利用する
+        self._use_ignore_list = utils.misc.get_boolean(args, "ignore_list", True)
+        self._expand_message = utils.misc.get_boolean(args, "expand_message", False)
 
     async def execute(
         self, ctx: discord.ext.commands.context.Context, ignore_ids: List[int]
@@ -54,11 +61,13 @@ class _NormalCommand:
         if self._reaction_emoji.lower() == "none":
             # リアクションをしていないユーザーを探す
             logger.debug("find no reaction users")
+            title = "リアクションしていない"
             targets = self._filter_users(channel.members, message, ignore_ids)
             result = await find_no_reaction_users(message, targets)
         elif self._reaction_emoji.lower() == "all":
             # リアクションしている全てのユーザーを探す
             logger.debug("find all reaction users")
+            title = "リアクションしている"
             result = []
             for reaction in message.reactions:
                 users = [user async for user in reaction.users()]
@@ -66,18 +75,25 @@ class _NormalCommand:
         else:
             # 指定の絵文字でリアクションしているユーザーを探す
             logger.debug(f"find reaction users: emoji={self._reaction_emoji}")
+            title = f"{self._reaction_emoji} をリアクションしている"
             targets = await find_reaction_users(message, self._reaction_emoji)
             result = self._filter_users(targets, message, ignore_ids)
 
+        logger.debug("send result")
         if len(result) > 0:
+            title = f"{title}ユーザーは以下の通りです"
             # 重複は除く
-            output_text = ", ".join([user.mention for user in list(set(result))])
+            description = ", ".join([user.mention for user in list(set(result))])
         else:
-            output_text = "対象者は居ませんでした。"
+            title = f"{title}ユーザーは居ませんでした"
+            description = ""
+        embed = discord.Embed(title=title, description=description)
+        embed.add_field(name="対象のメッセージ", value=message.jump_url, inline=False)
 
-        logger.debug(f"send: {output_text}")
-        await ctx.send(output_text)
-        await self._send_message_embed(ctx, message)
+        await ctx.send(embed=embed)
+
+        if self._expand_message:
+            await self._send_expand_message(ctx, message)
 
     @staticmethod
     def _filter_users(
@@ -94,7 +110,7 @@ class _NormalCommand:
 
     # copy and modify from dispander method
     @staticmethod
-    async def _send_message_embed(ctx, message):
+    async def _send_expand_message(ctx, message):
         if message.content or message.attachments:
             await ctx.send(embed=dispander.module.compose_embed(message))
         # Send the second and subsequent attachments with embed (named 'embed') respectively:
@@ -288,11 +304,6 @@ class MentionToReactionUsers(discord.ext.commands.Cog, CogBase):
         await self.execute(ctx, args)
 
     def _parse_args(self, args: Dict[str, str]):
-        if "message" not in args:
-            raise ArgumentError(message="対象のメッセージIDを必ず指定してください")
-        if "reaction" not in args:
-            raise ArgumentError(reaction="対象のリアクションを必ず指定してください")
-
         use_manage = utils.misc.get_boolean(args, "manage")
         if use_manage:
             self._manage_command = _ManageCommand()
