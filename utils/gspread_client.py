@@ -21,6 +21,13 @@ def get_or_add_worksheet(
             return add_func(workbook, name)
 
 
+def duplicate_template_sheet(
+    workbook: gspread.Spreadsheet, name: str
+) -> gspread.Worksheet:
+    template = workbook.worksheet("template")
+    return template.duplicate(new_sheet_name=name)
+
+
 class GSpreadClient(Singleton):
     def __init__(self):
         # 認証は生成時に一度だけ

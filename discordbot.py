@@ -18,6 +18,7 @@ class Constant(utils.constant.Constant):
         "cogs.download_messages_json",
         "cogs.mention_to_reaction_users",
         "cogs.logging_voice_states",
+        "cogs.notify_when_sent",
     ]
 
     TOKEN = os.environ["DISCORD_BOT_TOKEN"]
