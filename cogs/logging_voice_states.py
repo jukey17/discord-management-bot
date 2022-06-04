@@ -7,7 +7,6 @@ import os
 from typing import Optional, List, Dict
 
 import discord
-import gspread
 from discord.ext import commands
 
 import utils.discord
@@ -19,14 +18,6 @@ from utils.gspread_client import GSpreadClient
 
 
 logger = logging.getLogger(__name__)
-
-
-def _duplicate_template_sheet(
-    workbook: gspread.Spreadsheet, name: str
-) -> gspread.Worksheet:
-    logger.debug(f"{name} does not exist, so add a new one. ")
-    template = workbook.worksheet("template")
-    return template.duplicate(new_sheet_name=name)
 
 
 class LoggingVoiceStates(commands.Cog, CogBase):
@@ -67,7 +58,7 @@ class LoggingVoiceStates(commands.Cog, CogBase):
         workbook = self._gspread_client.open_by_key(sheet_id)
         sheet_name = str(ctx.guild.id)
         worksheet = utils.gspread_client.get_or_add_worksheet(
-            workbook, sheet_name, _duplicate_template_sheet
+            workbook, sheet_name, utils.gspread_client.duplicate_template_sheet
         )
 
         records = []
@@ -159,7 +150,7 @@ class LoggingVoiceStates(commands.Cog, CogBase):
         workbook = self._gspread_client.open_by_key(sheet_id)
         sheet_name = str(member.guild.id)
         worksheet = utils.gspread_client.get_or_add_worksheet(
-            workbook, sheet_name, _duplicate_template_sheet
+            workbook, sheet_name, utils.gspread_client.duplicate_template_sheet
         )
 
         when_date_changed_str = os.environ.get(
