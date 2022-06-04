@@ -132,7 +132,7 @@ class NotifyWhenSent(Cog, CogBase):
             raise ArgumentError(user="対象となるチャンネルを指定してください")
         try:
             self._channel_id = int(args["channel"])
-        except ValueError as _:
+        except ValueError:
             raise ArgumentError(user="チャンネルIDの指定が正しくありません")
 
     async def _execute(self, ctx: Context):
