@@ -163,6 +163,25 @@ BOTを起動すると `discord.py` の `on_voice_state_update` イベントを�
 | afk_in       | AFKチャンネルに入った    |
 | afk_out      | AFKチャンネルから出た    |
 
+### `/notify_when_sent {mode} channel={channel_id}`
+
+指定のチャンネルにメッセージが送信されたときにDMで通知を行います
+
+| param   | description         | default | required             |
+|---------|---------------------|---------|----------------------|
+| mode    | 利用するモードを指定します※詳細は後述 | -       | must                 |
+| channel | 対象のチャンネルのID         | -       | must(モードがlistの場合は不要) |
+
+#### モード一覧
+
+| mode     | description                  |
+|----------|------------------------------|
+| register | 指定のチャンネルを通知対象として登録します        |
+| delete   | 指定のチャンネルの通知対象を解除します          |
+| enable   | 指定のチャンネルの通知設定を有効します          |
+| disable  | 指定のチャンネルの通知設定を無効します          |
+| list     | 現在自身が設定してる通知先のチャンネルの一覧を取得します |
+
 ### `/get_system_info`
 
 BOTを実行している環境の情報を取得します  
