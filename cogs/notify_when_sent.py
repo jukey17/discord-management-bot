@@ -140,7 +140,7 @@ class NotifyWhenSent(Cog, CogBase):
             await ctx.send("このBOTが参加しているサーバー内で実行してください")
             return
 
-        if not ctx.guild.get_channel(self._channel_id):
+        if self._mode != _Mode.LIST and not ctx.guild.get_channel(self._channel_id):
             await ctx.send(f"channel={self._channel_id} が存在しません")
             return
 
