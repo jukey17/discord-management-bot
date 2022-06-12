@@ -5,6 +5,7 @@ import traceback
 import discord
 
 from discord.ext import commands
+from discord.ext.commands import CommandNotFound
 
 import utils.constant
 
@@ -61,9 +62,10 @@ class DiscordBot(commands.Bot):
             traceback.TracebackException.from_exception(orig_error).format()
         )
         self._logger.error(error_msg)
-        await context.send(
-            "unintentional error by the developer, please check the server logs."
-        )
+        if not isinstance(exception, CommandNotFound):
+            await context.send(
+                "unintentional error by the developer, please check the server logs."
+            )
 
 
 if __name__ == "__main__":
