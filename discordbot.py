@@ -24,8 +24,8 @@ class Constant(utils.constant.Constant):
     TOKEN = os.environ["DISCORD_BOT_TOKEN"]
 
 
-def init_logger():
-    logger = logging.getLogger("cogs")
+def init_logger(name: str):
+    logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
     console = logging.StreamHandler(stream=sys.stdout)
     console.setLevel(logging.DEBUG)
@@ -34,7 +34,6 @@ def init_logger():
     )
     console.setFormatter(formatter)
     logger.addHandler(console)
-    return logger
 
 
 class DiscordBot(commands.Bot):
@@ -46,7 +45,10 @@ class DiscordBot(commands.Bot):
 
         for cog in Constant.EXTENSIONS:
             self.load_extension(cog)
-        self._logger = init_logger()
+        init_logger(__name__)
+        init_logger("cogs")
+        init_logger("discord_ext_commands_coghelper")
+        self._logger = logging.getLogger(__name__)
 
     async def on_ready(self):
         self._logger.debug(

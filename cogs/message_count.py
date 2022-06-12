@@ -7,11 +7,18 @@ from typing import Optional, Dict, List
 
 import discord
 import discord.ext
+from discord.ext.commands import Cog, command, Context, Bot
+from discord_ext_commands_coghelper import (
+    CogHelper,
+    ArgumentError,
+    ChannelNotFoundError,
+    ChannelTypeError,
+    get_list,
+    get_before_after,
+)
 
-import utils.misc
-import utils.discord
-from cogs.cog import CogBase, ArgumentError
 from cogs.constant import Constant
+from utils.discord import convert_to_utc_naive_datetime, get_before_after_str
 
 logger = logging.getLogger(__name__)
 
@@ -50,30 +57,30 @@ class _MessageCountResult:
         return output
 
 
-class MessageCount(discord.ext.commands.Cog, CogBase):
-    def __init__(self, bot):
-        CogBase.__init__(self, bot)
+class MessageCount(Cog, CogHelper):
+    def __init__(self, bot: Bot):
+        CogHelper.__init__(self, bot)
         self._channel_ids: List[int]
         self._before: Optional[datetime.datetime] = None
         self._after: Optional[datetime.datetime] = None
 
-    @discord.ext.commands.command()
+    @command()
     async def message_count(self, ctx, *args):
         await self.execute(ctx, args)
 
-    def _parse_args(self, args: Dict[str, str]):
+    def _parse_args(self, ctx: Context, args: Dict[str, str]):
         if "channel" not in args:
-            raise ArgumentError(channel="チャンネルIDを一つ以上必ず設定してください")
+            raise ArgumentError(ctx, channel="チャンネルIDを一つ以上必ず設定してください")
 
-        self._channel_ids = utils.misc.get_array(
-            args, "channel", ",", lambda value: int(value), []
+        self._channel_ids = get_list(args, "channel", ",", lambda value: int(value), [])
+        self._before, self._after = get_before_after(
+            ctx, args, Constant.DATE_FORMAT, Constant.JST
         )
-        self._before, self._after = utils.misc.get_before_after_jst(args)
 
-    async def _execute(self, ctx: discord.ext.commands.context.Context):
-        before = utils.discord.convert_to_utc_naive_datetime(self._before)
-        after = utils.discord.convert_to_utc_naive_datetime(self._after)
-        before_str, after_str = utils.discord.get_before_after_str(
+    async def _execute(self, ctx: Context):
+        before = convert_to_utc_naive_datetime(self._before)
+        after = convert_to_utc_naive_datetime(self._after)
+        before_str, after_str = get_before_after_str(
             self._before, self._after, ctx.guild, Constant.JST
         )
 
@@ -81,15 +88,9 @@ class MessageCount(discord.ext.commands.Cog, CogBase):
         for channel_id in self._channel_ids:
             channel = ctx.guild.get_channel(channel_id)
             if channel is None:
-                logger.error(f"not found channel, channel_id={channel_id}")
-                await ctx.send(
-                    f"チャンネルが見つかりませんでした。チャンネルID: `{channel_id}` が正しいか確認してください。"
-                )
-                continue
+                raise ChannelNotFoundError(ctx, channel_id)
             if not isinstance(channel, discord.TextChannel):
-                logger.error(f"not discord.TextChannel, channel={channel}")
-                await ctx.send(f"{channel} はテキストチャンネルではありません。")
-                continue
+                raise ChannelTypeError(ctx, channel, discord.ChannelType.text)
 
             logger.debug(
                 f"{channel} count from history, after={after_str} before={before_str}"
@@ -156,5 +157,5 @@ class MessageCount(discord.ext.commands.Cog, CogBase):
         return results
 
 
-def setup(bot):
+def setup(bot: Bot):
     return bot.add_cog(MessageCount(bot))

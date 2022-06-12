@@ -3,21 +3,38 @@ import os
 from enum import Enum
 from typing import Dict, List
 
-import discord
-from discord import Message
+from discord import Message, Embed
+from discord.abc import GuildChannel
 from discord.ext.commands import Cog, Bot, command, Context
+from discord_ext_commands_coghelper import (
+    CogHelper,
+    ArgumentError,
+    ExecutionError,
+    ChannelNotFoundError,
+    get_bool,
+)
 from gspread.worksheet import Worksheet
 
-from cogs.cog import CogBase, ArgumentError
 from cogs.constant import Constant
 from utils.gspread_client import (
     GSpreadClient,
     get_or_add_worksheet,
     duplicate_template_sheet,
 )
-from utils.misc import get_boolean
 
 logger = logging.getLogger(__name__)
+
+
+class _AlreadyRegisteredError(ExecutionError):
+    def __init__(self, ctx: Context, channel: GuildChannel, **kwargs):
+        super().__init__(
+            ctx, title="既に登録されているチャネルです", channel=channel.mention, **kwargs
+        )
+
+
+class _NotRegisterError(ExecutionError):
+    def __init__(self, ctx: Context, channel: GuildChannel, **kwargs):
+        super().__init__(ctx, title="登録されていないチャネルです", channel=channel.mention, **kwargs)
 
 
 class _Constant(Constant):
@@ -61,9 +78,9 @@ class _Record:
         return cls(int(dic["user_id"]), int(dic["channel_id"]), bool(dic["is_valid"]))
 
 
-class NotifyWhenSent(Cog, CogBase):
+class NotifyWhenSent(Cog, CogHelper):
     def __init__(self, bot: Bot):
-        CogBase.__init__(self, bot)
+        CogHelper.__init__(self, bot)
         self._gspread_client = GSpreadClient()
         self._records: Dict[int, List[_Record]] = {}
         self._mode: _Mode
@@ -104,13 +121,13 @@ class NotifyWhenSent(Cog, CogBase):
                 continue
 
             logger.debug(f"notify, user={member}, message={message}")
-            embed = discord.Embed(
+            embed = Embed(
                 title=f"#{message.channel.name}({message.guild.name})にメッセージの送信がありました",
                 description=f"{message.jump_url}",
             )
             await member.send(embed=embed)
 
-    def _parse_args(self, args: Dict[str, str]):
+    def _parse_args(self, ctx: Context, args: Dict[str, str]):
         if "register" in args:
             self._mode = _Mode.REGISTER
         elif "delete" in args:
@@ -122,27 +139,27 @@ class NotifyWhenSent(Cog, CogBase):
         elif "list" in args:
             self._mode = _Mode.LIST
         else:
-            raise ArgumentError(mode="モードを必ず指定してください(register/delete/enable/disable)")
+            raise ArgumentError(
+                ctx, mode="モードを必ず指定してください(register/delete/enable/disable/list)"
+            )
 
         if self._mode == _Mode.LIST:
-            self._list_all = get_boolean(args, "all", False)
+            self._list_all = get_bool(args, "all", False)
             return
 
         if "channel" not in args:
-            raise ArgumentError(user="対象となるチャンネルを指定してください")
+            raise ArgumentError(ctx, channel="対象となるチャンネルを指定してください")
         try:
             self._channel_id = int(args["channel"])
         except ValueError:
-            raise ArgumentError(user="チャンネルIDの指定が正しくありません")
+            raise ArgumentError(ctx, channel="チャンネルIDの指定が正しくありません")
 
     async def _execute(self, ctx: Context):
         if not ctx.guild:
-            await ctx.send("このBOTが参加しているサーバー内で実行してください")
-            return
+            raise ExecutionError(ctx, title="このBOTが参加しているサーバー内で実行してください")
 
         if self._mode != _Mode.LIST and not ctx.guild.get_channel(self._channel_id):
-            await ctx.send(f"channel={self._channel_id} が存在しません")
-            return
+            raise ChannelNotFoundError(ctx, self._channel_id)
 
         workbook = self._gspread_client.open_by_key(_Constant.SHEET_ID)
         sheet_name = str(ctx.guild.id)
@@ -165,7 +182,7 @@ class NotifyWhenSent(Cog, CogBase):
     async def _execute_register(self, ctx: Context):
         channel = ctx.guild.get_channel(self._channel_id)
         if self._find_record(ctx.guild.id, ctx.author.id, self._channel_id):
-            await ctx.send(f"{channel.mention} は既に登録されています")
+            raise _AlreadyRegisteredError(ctx, channel)
         else:
             record = _Record(ctx.author.id, self._channel_id, True)
             self._records[ctx.guild.id].append(record)
@@ -176,7 +193,7 @@ class NotifyWhenSent(Cog, CogBase):
         channel = ctx.guild.get_channel(self._channel_id)
         record = self._find_record(ctx.guild.id, ctx.author.id, self._channel_id)
         if not record:
-            await ctx.send(f"{channel.mention} は登録されていません")
+            raise _NotRegisterError(ctx, channel)
         else:
             self._records[ctx.guild.id].remove(record)
             logger.debug(f"record={record}")
@@ -186,7 +203,7 @@ class NotifyWhenSent(Cog, CogBase):
         channel = ctx.guild.get_channel(self._channel_id)
         record = self._find_record(ctx.guild.id, ctx.author.id, self._channel_id)
         if not record:
-            await ctx.send(f"{channel.mention} は登録されていません")
+            raise _NotRegisterError(ctx, channel)
         else:
             logger.debug(f"record={record}")
             record.update_is_valid(True)
@@ -196,14 +213,14 @@ class NotifyWhenSent(Cog, CogBase):
         channel = ctx.guild.get_channel(self._channel_id)
         record = self._find_record(ctx.guild.id, ctx.author.id, self._channel_id)
         if not record:
-            await ctx.send(f"{channel.mention} は登録されていません")
+            raise _NotRegisterError(ctx, channel)
         else:
             logger.debug(f"record={record}")
             record.update_is_valid(False)
             await ctx.send(f"{channel.mention} の通知設定を無効にしました")
 
     async def _execute_list(self, ctx: Context):
-        embed = discord.Embed(
+        embed = Embed(
             title=f"{ctx.author.display_name} の通知一覧",
             description=f"サーバー名: {ctx.guild.name}",
         )
