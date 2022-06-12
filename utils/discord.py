@@ -68,12 +68,6 @@ async def find_reaction_users(
     return [user async for user in target.users()]
 
 
-def convert_to_utc_naive_datetime(dt: datetime.datetime) -> Optional[datetime.datetime]:
-    if dt is None:
-        return None
-    return dt.astimezone(datetime.timezone.utc).replace(tzinfo=None)
-
-
 def get_before_after_str(
     before: datetime.datetime,
     after: datetime.datetime,

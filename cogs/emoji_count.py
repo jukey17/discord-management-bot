@@ -10,10 +10,11 @@ from discord_ext_commands_coghelper import (
     get_list,
     get_before_after,
     get_bool,
+    to_utc_naive,
 )
 
 from cogs.constant import Constant
-from utils.discord import convert_to_utc_naive_datetime, get_before_after_str
+from utils.discord import get_before_after_str
 
 logger = logging.getLogger(__name__)
 
@@ -77,8 +78,8 @@ class EmojiCount(Cog, CogHelper):
         self._contains_bot = get_bool(args, "bot", False)
 
     async def _execute(self, ctx: Context):
-        before = convert_to_utc_naive_datetime(self._before)
-        after = convert_to_utc_naive_datetime(self._after)
+        before = to_utc_naive(self._before)
+        after = to_utc_naive(self._after)
 
         counters = [_EmojiCounter(emoji) for emoji in ctx.guild.emojis]
 
