@@ -6,50 +6,53 @@ import logging
 from typing import Optional, Dict
 
 import discord
-import discord.ext
+from discord import ChannelType
+from discord.ext.commands import Context, Bot, command
+from discord_ext_commands_coghelper import (
+    CogHelper,
+    ArgumentError,
+    ChannelNotFoundError,
+    ChannelTypeError,
+    get_before_after,
+)
 
-import utils.misc
-import utils.discord
-from cogs.cog import CogBase, ArgumentError
 from cogs.constant import Constant
+from utils.discord import convert_to_utc_naive_datetime, get_before_after_str
+from utils.misc import parse_json
 
 logger = logging.getLogger(__name__)
 
 
-class DownloadMessageJson(discord.ext.commands.Cog, CogBase):
-    def __init__(self, bot):
-        CogBase.__init__(self, bot)
+class DownloadMessageJson(discord.ext.commands.Cog, CogHelper):
+    def __init__(self, bot: Bot):
+        CogHelper.__init__(self, bot)
         self._channel_id: Optional[int] = None
         self._before: Optional[datetime.datetime] = None
         self._after: Optional[datetime.datetime] = None
 
-    @discord.ext.commands.command()
+    @command()
     async def download_messages_json(self, ctx, *args):
         await self.execute(ctx, args)
 
-    def _parse_args(self, args: Dict[str, str]):
+    def _parse_args(self, ctx: Context, args: Dict[str, str]):
         if "channel" not in args:
-            raise ArgumentError(channel="チャンネルIDを必ず設定してください")
+            raise ArgumentError(ctx, channel="チャンネルIDを必ず設定してください")
 
         self._channel_id = int(args.get("channel", None))
-        self._before, self._after = utils.misc.get_before_after_jst(args)
+        self._before, self._after = get_before_after(
+            ctx, args, Constant.DATE_FORMAT, Constant.JST
+        )
 
-    async def _execute(self, ctx: discord.ext.commands.context.Context):
+    async def _execute(self, ctx: Context):
         channel = ctx.guild.get_channel(self._channel_id)
         if channel is None:
-            logger.error(f"not found channel, channel_id={self._channel_id}")
-            await ctx.send(
-                f"チャンネルが見つかりませんでした。チャンネルID: `{self._channel_id}` が正しいか確認してください。"
-            )
-            return
+            raise ChannelNotFoundError(ctx, self._channel_id)
         if not isinstance(channel, discord.TextChannel):
-            logger.error(f"not discord.TextChannel, channel={channel}")
-            await ctx.send(f"{channel} はテキストチャンネルではありません。")
-            return
+            raise ChannelTypeError(ctx, channel, ChannelType.text)
 
-        before = utils.discord.convert_to_utc_naive_datetime(self._before)
-        after = utils.discord.convert_to_utc_naive_datetime(self._after)
-        before_str, after_str = utils.discord.get_before_after_str(
+        before = convert_to_utc_naive_datetime(self._before)
+        after = convert_to_utc_naive_datetime(self._after)
+        before_str, after_str = get_before_after_str(
             self._before, self._after, ctx.guild, Constant.JST
         )
 
@@ -74,13 +77,7 @@ class DownloadMessageJson(discord.ext.commands.Cog, CogBase):
         )
         logger.debug(f"create {filename}")
         with contextlib.closing(io.StringIO()) as buffer:
-            json.dump(
-                results,
-                buffer,
-                default=utils.misc.parse_json,
-                indent=2,
-                ensure_ascii=False,
-            )
+            json.dump(results, buffer, default=parse_json, indent=2, ensure_ascii=False)
             buffer.seek(0)
             logger.debug(f"send {filename}")
             title = "/download_messages_json"
@@ -90,5 +87,5 @@ class DownloadMessageJson(discord.ext.commands.Cog, CogBase):
             await ctx.send(embed=embed, file=discord.File(buffer, filename))
 
 
-def setup(bot):
+def setup(bot: Bot):
     return bot.add_cog(DownloadMessageJson(bot))

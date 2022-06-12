@@ -6,41 +6,49 @@ import os
 from typing import Optional, Dict, List, Union
 
 import discord.ext.commands
-import gspread
 import dispander.module
+from discord.ext.commands import Bot, Context, Cog, command
+from discord_ext_commands_coghelper import (
+    ArgumentError,
+    CogHelper,
+    ExecutionError,
+    ChannelNotFoundError,
+    UserNotFoundError,
+    get_bool,
+)
+from gspread import Worksheet
 
-import utils.misc
-from cogs.cog import CogBase, ArgumentError
 from utils.discord import find_text_channel, find_reaction_users, find_no_reaction_users
-from utils.gspread_client import GSpreadClient
-
+from utils.gspread_client import GSpreadClient, get_or_add_worksheet
+from utils.misc import parse_json
 
 logger = logging.getLogger(__name__)
 
 
 class _NormalCommand:
-    def __init__(self, bot):
-        self.bot = bot
+    def __init__(self):
         self._message_id: Optional[int] = None
         self._reaction_emoji: Optional[str] = None
         self._use_ignore_list = True
         self._expand_message = False
 
-    def parse_args(self, args: Dict[str, str]):
+    def parse_args(self, ctx: Context, args: Dict[str, str]):
         if "message" not in args:
-            raise ArgumentError(message="対象のメッセージIDを必ず指定してください")
+            raise ArgumentError(ctx, message="対象のメッセージIDを必ず指定してください")
         if "reaction" not in args:
-            raise ArgumentError(reaction="対象のリアクションを必ず指定してください")
+            raise ArgumentError(ctx, reaction="対象のリアクションを必ず指定してください")
 
-        self._message_id = int(args["message"])
+        try:
+            self._message_id = int(args["message"])
+        except ValueError:
+            raise ArgumentError(ctx, message="メッセージIDの指定が正しくありません")
+
         self._reaction_emoji = args["reaction"]
         # 通常モードではignore_listはデフォルトで利用する
-        self._use_ignore_list = utils.misc.get_boolean(args, "ignore_list", True)
-        self._expand_message = utils.misc.get_boolean(args, "expand_message", False)
+        self._use_ignore_list = get_bool(args, "ignore_list", True)
+        self._expand_message = get_bool(args, "expand_message", False)
 
-    async def execute(
-        self, ctx: discord.ext.commands.context.Context, ignore_ids: List[int]
-    ):
+    async def execute(self, ctx: Context, ignore_ids: List[int]):
         # 無視リストを使わない
         if not self._use_ignore_list:
             ignore_ids.clear()
@@ -48,11 +56,9 @@ class _NormalCommand:
         channel, message = await find_text_channel(ctx.guild, self._message_id)
 
         if channel is None:
-            logger.error(f"not found channel, message_id={self._message_id}")
-            await ctx.send(
-                f"チャンネルが見つかりませんでした。メッセージID: `{self._message_id}` が正しいか確認してください。"
+            raise ChannelNotFoundError(
+                ctx, channel_id="None", message_id=self._message_id
             )
-            return
 
         logger.debug(
             f"fetch message: channel={channel.name}, message={message.content}"
@@ -126,36 +132,30 @@ class _ManageCommand:
     def __init__(self):
         self._use_ignore_list = False
         self._download = False
-        self._append: Optional[str] = None
+        self._append: Optional[int] = None
         self._remove: Optional[str] = None
         self._show = False
 
-    def parse_args(self, args: Dict[str, str]):
-        self._use_ignore_list = utils.misc.get_boolean(args, "ignore_list")
-        self._download = utils.misc.get_boolean(args, "download")
-        self._append = args.get("append", None)
-        self._remove = args.get("remove", None)
-        self._show = utils.misc.get_boolean(args, "show")
+    def parse_args(self, ctx: Context, args: Dict[str, str]):
+        self._use_ignore_list = get_bool(args, "ignore_list")
+        self._download = get_bool(args, "download")
+        try:
+            self._append = int(args.get("append", -1))
+        except ValueError:
+            raise ArgumentError(ctx, append="ユーザーIDの指定が正しくありません")
 
-    async def execute(
-        self,
-        ctx: discord.ext.commands.context.Context,
-        worksheet: gspread.worksheet.Worksheet,
-        ignore_ids: List[int],
-    ):
+        self._remove = args.get("remove", None)
+        self._show = get_bool(args, "show")
+
+    async def execute(self, ctx: Context, worksheet: Worksheet, ignore_ids: List[int]):
         if self._use_ignore_list:
             await self._manage_ignore_list(ctx, worksheet, ignore_ids)
 
     async def _manage_ignore_list(
-        self,
-        ctx: discord.ext.commands.context.Context,
-        worksheet: gspread.worksheet.Worksheet,
-        ignore_ids: List[int],
+        self, ctx: Context, worksheet: Worksheet, ignore_ids: List[int]
     ):
-        if self._append is not None:
-            await self._append_ignore_list(
-                ctx, worksheet, ignore_ids, int(self._append)
-            )
+        if self._append != -1:
+            await self._append_ignore_list(ctx, worksheet, ignore_ids, self._append)
         if self._remove is not None:
             await self._remove_ignore_list(ctx, worksheet, ignore_ids, self._remove)
         if self._download:
@@ -165,15 +165,10 @@ class _ManageCommand:
 
     @classmethod
     async def _download_ignore_list(
-        cls,
-        ctx: discord.ext.commands.context.Context,
-        worksheet: gspread.worksheet.Worksheet,
-        ignore_ids: List[int],
+        cls, ctx: Context, worksheet: Worksheet, ignore_ids: List[int]
     ):
         filename = f"ignore_list_{ctx.guild.id}.json"
-        logger.debug(
-            f"download ignore_list: sheet_id={worksheet.id}, guild={ctx.guild.id}, json={filename}"
-        )
+        logger.debug(f"sheet={worksheet.id}, guild={ctx.guild.id}, json={filename}")
         ignore_dict = []
         for user_id in ignore_ids:
             user = ctx.guild.get_member(user_id)
@@ -188,33 +183,19 @@ class _ManageCommand:
                 )
         with contextlib.closing(io.StringIO()) as buffer:
             json.dump(
-                ignore_dict,
-                buffer,
-                default=utils.misc.parse_json,
-                indent=2,
-                ensure_ascii=False,
+                ignore_dict, buffer, default=parse_json, indent=2, ensure_ascii=False
             )
             buffer.seek(0)
             await ctx.send(file=discord.File(buffer, filename))
 
     @classmethod
     async def _append_ignore_list(
-        cls,
-        ctx: discord.ext.commands.context.Context,
-        worksheet: gspread.worksheet.Worksheet,
-        ignore_ids: List[int],
-        append_id: int,
+        cls, ctx: Context, worksheet: Worksheet, ignore_ids: List[int], append_id: int
     ):
-        logger.debug(
-            f"append ignore_list: sheet_id={worksheet.id}, guild={ctx.guild.id}, user={append_id}"
-        )
+        logger.debug(f"sheet={worksheet.id}, guild={ctx.guild.id}, user={append_id}")
         member = ctx.guild.get_member(append_id)
         if member is None:
-            logger.debug(
-                f"append ignore_list: not found user_id={append_id} from guild_id={ctx.guild.id}"
-            )
-            await ctx.send(f"ユーザーが見つかりませんでした。 user_id={append_id}")
-            return
+            raise UserNotFoundError(ctx, append_id, guild_id=ctx.guild.id)
 
         ignore_ids.append(append_id)
         cls._update_cells(worksheet, [str(ignore_id) for ignore_id in ignore_ids])
@@ -224,50 +205,41 @@ class _ManageCommand:
 
     @classmethod
     async def _remove_ignore_list(
-        cls,
-        ctx: discord.ext.commands.context.Context,
-        worksheet: gspread.worksheet.Worksheet,
-        ignore_ids: List[int],
-        remove: str,
+        cls, ctx: Context, worksheet: Worksheet, ignore_ids: List[int], remove: str
     ):
         # intのリストに空の要素が追加できないのでstrにしている
         ignore_list = [str(ignore_id) for ignore_id in ignore_ids]
 
         if remove.lower() == "all":
-            logger.debug(
-                f"remove ignore_list: sheet_id={worksheet.id}, guild={ctx.guild.id}, user=all"
-            )
+            logger.debug(f"sheet={worksheet.id}, guild={ctx.guild.id}, user=all")
             # 要素数は変えずに空文字で埋めて全削除
             ignore_list = ["" for _ in ignore_list]
             output_text = f"{ctx.guild.name}[{ctx.guild.id}] の無視リストから全てのユーザーを除去しました。"
-            cls._update_cells(worksheet, ignore_list)
         else:
-            remove_id = int(remove)
-            logger.debug(
-                f"remove ignore_list: sheet_id={worksheet.id}, guild={ctx.guild.id}, user={remove_id}"
-            )
-            if remove_id in ignore_ids:
-                # 要素数は変えずに空文字で埋めて削除
-                ignore_list.remove(str(remove_id))
-                ignore_list.append("")
-                output_text = f"{ctx.guild.name}[{ctx.guild.id}] の無視リストから user_id={remove_id} を除去しました。"
-                cls._update_cells(worksheet, ignore_list)
-            else:
-                logger.debug(
-                    f"remove ignore_list: not contains user_id={remove_id} in guild_id={ctx.guild.id}"
-                )
-                output_text = f"{ctx.guild.name}[{ctx.guild.id}] の無視リストに user_id={remove_id} が存在しません。"
+            try:
+                remove_id = int(remove)
+            except ValueError:
+                raise ExecutionError(ctx, title="️ユーザーIDの指定が正しくありません", remove=remove)
 
+            logger.debug(
+                f"sheet={worksheet.id}, guild={ctx.guild.id}, user={remove_id}"
+            )
+            if remove_id not in ignore_ids:
+                raise ExecutionError(ctx, title="️無視リストにユーザーが存在しません", remove=remove_id)
+
+            # 要素数は変えずに空文字で埋めて削除
+            ignore_list.remove(str(remove_id))
+            ignore_list.append("")
+            output_text = f"{ctx.guild.name}[{ctx.guild.id}] の無視リストから user_id={remove_id} を除去しました。"
+
+        cls._update_cells(worksheet, ignore_list)
         await ctx.send(output_text)
 
     @classmethod
     async def _show_ignore_list(
-        cls,
-        ctx: discord.ext.commands.context.Context,
-        worksheet: gspread.worksheet.Worksheet,
-        ignore_ids: List[int],
+        cls, ctx: Context, worksheet: Worksheet, ignore_ids: List[int]
     ):
-        logger.debug(f"show ignore_list: sheet_id={worksheet.id}, guild={ctx.guild.id}")
+        logger.debug(f"sheet={worksheet.id}, guild={ctx.guild.id}")
         embed = discord.Embed(
             title="/mention_to_reaction_users 無視リスト",
             description=f"サーバー: {ctx.guild.name}[{ctx.guild.id}]",
@@ -285,42 +257,40 @@ class _ManageCommand:
         await ctx.send(embed=embed)
 
     @staticmethod
-    def _update_cells(worksheet: gspread.worksheet.Worksheet, values: List[str]):
+    def _update_cells(worksheet: Worksheet, values: List[str]):
         cells = worksheet.range(f"A1:A{len(values)}")
         for index, cell in enumerate(cells):
             cell.value = values[index]
         worksheet.update_cells(cells)
 
 
-class MentionToReactionUsers(discord.ext.commands.Cog, CogBase):
-    def __init__(self, bot):
-        CogBase.__init__(self, bot)
+class MentionToReactionUsers(Cog, CogHelper):
+    def __init__(self, bot: Bot):
+        CogHelper.__init__(self, bot)
         self._gspread_client = GSpreadClient()
         self._normal_command: Optional[_NormalCommand] = None
         self._manage_command: Optional[_ManageCommand] = None
 
-    @discord.ext.commands.command()
+    @command()
     async def mention_to_reaction_users(self, ctx, *args):
         await self.execute(ctx, args)
 
-    def _parse_args(self, args: Dict[str, str]):
-        use_manage = utils.misc.get_boolean(args, "manage")
+    def _parse_args(self, ctx: Context, args: Dict[str, str]):
+        use_manage = get_bool(args, "manage")
         if use_manage:
             self._manage_command = _ManageCommand()
-            self._manage_command.parse_args(args)
+            self._manage_command.parse_args(ctx, args)
         else:
-            self._normal_command = _NormalCommand(self.bot)
-            self._normal_command.parse_args(args)
+            self._normal_command = _NormalCommand()
+            self._normal_command.parse_args(ctx, args)
 
-    async def _execute(self, ctx: discord.ext.commands.context.Context):
+    async def _execute(self, ctx: Context):
         # NOTE: シートの取得も1度だけでいいかもしれない
         sheet_id = os.environ["IGNORE_LIST_SHEET_ID"]
         workbook = self._gspread_client.open_by_key(sheet_id)
         sheet_name = str(ctx.guild.id)
-        worksheet = utils.gspread_client.get_or_add_worksheet(
-            workbook,
-            sheet_name,
-            lambda w, n: w.add_worksheet(n, rows=100, cols=1),
+        worksheet = get_or_add_worksheet(
+            workbook, sheet_name, lambda w, n: w.add_worksheet(n, rows=100, cols=1)
         )
         ignore_list = worksheet.col_values(1)
         ignore_ids = [int(ignore_id) for ignore_id in ignore_list]
@@ -336,5 +306,5 @@ class MentionToReactionUsers(discord.ext.commands.Cog, CogBase):
             self._normal_command = None
 
 
-def setup(bot):
+def setup(bot: Bot):
     return bot.add_cog(MentionToReactionUsers(bot))

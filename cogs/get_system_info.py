@@ -4,24 +4,24 @@ import socket
 import sys
 from typing import Dict
 
-import discord.ext.commands
-from discord.ext.commands import command, Cog, Bot
+import discord
+from discord.ext.commands import command, Cog, Bot, Context
 
-from cogs.cog import CogBase
+from discord_ext_commands_coghelper import CogHelper
 
 
-class GetSystemInfo(Cog, CogBase):
+class GetSystemInfo(Cog, CogHelper):
     def __init__(self, bot: Bot):
-        CogBase.__init__(self, bot)
+        CogHelper.__init__(self, bot)
 
     @command()
     async def get_system_info(self, ctx, *args):
         await self.execute(ctx, args)
 
-    def _parse_args(self, args: Dict[str, str]):
+    def _parse_args(self, ctx: Context, args: Dict[str, str]):
         pass
 
-    async def _execute(self, ctx: discord.ext.commands.context.Context):
+    async def _execute(self, ctx: Context):
         title = "/get_system_info"
         description = f"bot={self.bot.user}"
         embed = discord.Embed(title=title, description=description)
