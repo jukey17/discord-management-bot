@@ -1,8 +1,5 @@
 import datetime
 import re
-from typing import Optional, List, Callable, Any, Dict
-
-from utils.constant import Constant
 
 
 def get_modified_datetime(
