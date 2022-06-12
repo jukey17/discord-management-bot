@@ -7,22 +7,31 @@ import os
 from typing import Optional, List, Dict
 
 import discord
-from discord.ext import commands
+from discord.ext.commands import Bot, command, Cog, Context
+from discord_ext_commands_coghelper import (
+    CogHelper,
+    ArgumentError,
+    ExecutionError,
+    get_list,
+    get_before_after,
+    get_bool,
+)
 
-import utils.discord
-import utils.misc
-import utils.gspread_client
-from cogs.cog import CogBase, ArgumentError
 from cogs.constant import Constant
-from utils.gspread_client import GSpreadClient
-
+from utils.discord import get_before_after_str
+from utils.gspread_client import (
+    GSpreadClient,
+    get_or_add_worksheet,
+    duplicate_template_sheet,
+)
+from utils.misc import back_from_modified_datetime, parse_json, get_modified_datetime
 
 logger = logging.getLogger(__name__)
 
 
-class LoggingVoiceStates(commands.Cog, CogBase):
-    def __init__(self, bot):
-        CogBase.__init__(self, bot)
+class LoggingVoiceStates(Cog, CogHelper):
+    def __init__(self, bot: Bot):
+        CogHelper.__init__(self, bot)
         self._gspread_client = GSpreadClient()
         self._count: Optional[str] = None
         self._user_ids: List[int]
@@ -31,57 +40,55 @@ class LoggingVoiceStates(commands.Cog, CogBase):
         self._after: Optional[datetime.datetime] = None
         self._minimum = True
 
-    @commands.command()
+    @command()
     async def logging_voice_states(self, ctx, *args):
         await self.execute(ctx, args)
 
-    def _parse_args(self, args: Dict[str, str]):
+    def _parse_args(self, ctx: Context, args: Dict[str, str]):
         if "count" not in args:
-            raise ArgumentError(count="対象のステートを必ず指定してください")
+            raise ArgumentError(ctx, count="対象のステートを必ず指定してください")
 
         self._count = args.get("count", None)
-        self._user_ids = utils.misc.get_array(
-            args, "user", ",", lambda value: int(value), []
+        self._user_ids = get_list(args, "user", ",", lambda value: int(value), [])
+        self._channel_ids = get_list(args, "channel", ",", lambda value: int(value), [])
+        self._before, self._after = get_before_after(
+            ctx, args, Constant.DATE_FORMAT, Constant.JST
         )
-        self._channel_ids = utils.misc.get_array(
-            args, "channel", ",", lambda value: int(value), []
-        )
-        self._before, self._after = utils.misc.get_before_after_jst(args, False)
-        self._minimum = utils.misc.get_boolean(args, "minimum", True)
+        self._minimum = get_bool(args, "minimum", True)
 
-    async def _execute(self, ctx: discord.ext.commands.context.Context):
+    async def _execute(self, ctx: Context):
         if self._count is not None:
             await self._execute_count(ctx)
 
-    async def _execute_count(self, ctx: discord.ext.commands.context.Context):
+    async def _execute_count(self, ctx: Context):
         sheet_id = os.environ["LOGGING_VOICE_STATES_SHEET_ID"]
         workbook = self._gspread_client.open_by_key(sheet_id)
         sheet_name = str(ctx.guild.id)
-        worksheet = utils.gspread_client.get_or_add_worksheet(
-            workbook, sheet_name, utils.gspread_client.duplicate_template_sheet
-        )
+        worksheet = get_or_add_worksheet(workbook, sheet_name, duplicate_template_sheet)
 
         records = []
         for record in worksheet.get_all_records():
             try:
-                dt = utils.misc.back_from_modified_datetime(
-                    record["date"], record["time"]
-                )
+                dt = back_from_modified_datetime(record["date"], record["time"])
             except Exception as e:
-                logger.error(f"record={record}, exception={e}")
-                await ctx.send(f"日時のパースに失敗しました。 record={record}")
-            else:
-                if self._after is not None and self._before is not None:
-                    if self._after < dt < self._before:
-                        records.append(record)
-                elif self._after is None and self._before is not None:
-                    if dt < self._before:
-                        records.append(record)
-                elif self._after is not None and self._before is None:
-                    if self._after < dt:
-                        records.append(record)
-                else:
+                logger.error(e)
+                raise ExecutionError(
+                    ctx,
+                    title="既存レコードの日時のパースに失敗しました。",
+                    date=record["date"],
+                    time=record["time"],
+                )
+            if self._after is not None and self._before is not None:
+                if self._after < dt < self._before:
                     records.append(record)
+            elif self._after is None and self._before is not None:
+                if dt < self._before:
+                    records.append(record)
+            elif self._after is not None and self._before is None:
+                if self._after < dt:
+                    records.append(record)
+            else:
+                records.append(record)
 
         if len(self._user_ids) > 0:
             # ユーザーIDの指定がある→指定のユーザーだけ
@@ -110,6 +117,7 @@ class LoggingVoiceStates(commands.Cog, CogBase):
                     and self._count in record["state"]
                 ]
                 count = len(matched)
+                # 0回は省略
                 if self._minimum and count == 0:
                     continue
                 results.append(
@@ -121,7 +129,7 @@ class LoggingVoiceStates(commands.Cog, CogBase):
                     }
                 )
 
-        before_str, after_str = utils.discord.get_before_after_str(
+        before_str, after_str = get_before_after_str(
             self._before, self._after, ctx.guild, Constant.JST
         )
 
@@ -129,17 +137,11 @@ class LoggingVoiceStates(commands.Cog, CogBase):
             "/", ""
         )
         with contextlib.closing(io.StringIO()) as buffer:
-            json.dump(
-                results,
-                buffer,
-                default=utils.misc.parse_json,
-                indent=2,
-                ensure_ascii=False,
-            )
+            json.dump(results, buffer, default=parse_json, indent=2, ensure_ascii=False)
             buffer.seek(0)
             await ctx.send(file=discord.File(buffer, filename))
 
-    @commands.Cog.listener()
+    @Cog.listener()
     async def on_voice_state_update(
         self,
         member: discord.Member,
@@ -149,9 +151,7 @@ class LoggingVoiceStates(commands.Cog, CogBase):
         sheet_id = os.environ["LOGGING_VOICE_STATES_SHEET_ID"]
         workbook = self._gspread_client.open_by_key(sheet_id)
         sheet_name = str(member.guild.id)
-        worksheet = utils.gspread_client.get_or_add_worksheet(
-            workbook, sheet_name, utils.gspread_client.duplicate_template_sheet
-        )
+        worksheet = get_or_add_worksheet(workbook, sheet_name, duplicate_template_sheet)
 
         when_date_changed_str = os.environ.get(
             "LOGGING_VOICE_STATES_WHEN_DATE_CHANGED", "00:00:00"
@@ -159,15 +159,7 @@ class LoggingVoiceStates(commands.Cog, CogBase):
         when_date_changed = datetime.datetime.strptime(
             when_date_changed_str, Constant.TIME_FORMAT
         ).time()
-        (
-            year,
-            month,
-            day,
-            hour,
-            minute,
-            second,
-            microsecond,
-        ) = utils.misc.get_modified_datetime(
+        (year, month, day, hour, minute, second, microsecond,) = get_modified_datetime(
             datetime.datetime.now(tz=Constant.JST), when_date_changed
         )
 
@@ -234,5 +226,5 @@ class LoggingVoiceStates(commands.Cog, CogBase):
         logger.debug(f"append record: {record}")
 
 
-def setup(bot):
+def setup(bot: Bot):
     return bot.add_cog(LoggingVoiceStates(bot))

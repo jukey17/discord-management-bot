@@ -3,12 +3,17 @@ import logging
 from enum import Enum
 from typing import List, Optional, Dict
 
-import discord.ext
+import discord
+from discord.ext.commands import Context, Bot, Cog, command
+from discord_ext_commands_coghelper import (
+    CogHelper,
+    get_list,
+    get_before_after,
+    get_bool,
+)
 
-import cogs.constant
-import utils.discord
-import utils.misc
-from cogs.cog import CogBase
+from cogs.constant import Constant
+from utils.discord import convert_to_utc_naive_datetime, get_before_after_str
 
 logger = logging.getLogger(__name__)
 
@@ -17,9 +22,13 @@ class _SortOrder(Enum):
     ASCENDING = 1
     DESCENDING = 2
 
-    @classmethod
-    def parse(cls, value: str):
+    @staticmethod
+    def parse(value: str):
         return _SortOrder.DESCENDING if value == "descending" else _SortOrder.ASCENDING
+
+    @staticmethod
+    def reverse(value) -> bool:
+        return True if value == _SortOrder.DESCENDING else False
 
 
 class _EmojiCountType(Enum):
@@ -40,53 +49,50 @@ class _EmojiCounter:
         return sum(self.counts.values())
 
 
-class _Constant(cogs.constant.Constant):
+class _Constant(Constant):
     DEFAULT_RANK: int = 10
 
 
-class EmojiCount(discord.ext.commands.Cog, CogBase):
-    def __init__(self, bot):
-        CogBase.__init__(self, bot)
+class EmojiCount(Cog, CogHelper):
+    def __init__(self, bot: Bot):
+        CogHelper.__init__(self, bot)
         self._channel_ids: List[int]
         self._before: Optional[datetime.datetime] = None
         self._after: Optional[datetime.datetime] = None
         self._order = _SortOrder.ASCENDING
         self._rank = _Constant.DEFAULT_RANK
-        self._bot = False
+        self._contains_bot = False
 
-    @discord.ext.commands.command()
+    @command()
     async def emoji_count(self, ctx, *args):
         await self.execute(ctx, args)
 
-    def _parse_args(self, args: Dict[str, str]):
-        self._channel_ids = utils.misc.get_array(
-            args, "channel", ",", lambda value: int(value), []
+    def _parse_args(self, ctx: Context, args: Dict[str, str]):
+        self._channel_ids = get_list(args, "channel", ",", lambda value: int(value), [])
+        self._before, self._after = get_before_after(
+            ctx, args, _Constant.DATE_FORMAT, _Constant.JST
         )
-        self._before, self._after = utils.misc.get_before_after_jst(args)
         self._order = _SortOrder.parse(args.get("order", ""))
         self._rank = int(args.get("rank", _Constant.DEFAULT_RANK))
-        self._bot = utils.misc.get_boolean(args, "bot", False)
+        self._contains_bot = get_bool(args, "bot", False)
 
-    async def _execute(self, ctx: discord.ext.commands.context.Context):
-        before = utils.discord.convert_to_utc_naive_datetime(self._before)
-        after = utils.discord.convert_to_utc_naive_datetime(self._after)
+    async def _execute(self, ctx: Context):
+        before = convert_to_utc_naive_datetime(self._before)
+        after = convert_to_utc_naive_datetime(self._after)
+
+        counters = [_EmojiCounter(emoji) for emoji in ctx.guild.emojis]
 
         channels = (
             [ctx.guild.get_channel(channel_id) for channel_id in self._channel_ids]
             if len(self._channel_ids) > 0
             else ctx.guild.channels
         )
-
-        counters = [_EmojiCounter(emoji) for emoji in ctx.guild.emojis]
-
+        channels = [
+            channel
+            for channel in channels
+            if channel is not None and isinstance(channel, discord.TextChannel)
+        ]
         for channel in channels:
-            if channel is None:
-                logger.warning("channel is None.")
-                continue
-            if not isinstance(channel, discord.TextChannel):
-                logger.warning(f"{channel} is not TextChannel.")
-                continue
-
             logger.debug(f"count emoji in {channel.name} channel.")
             try:
                 messages = [
@@ -99,29 +105,11 @@ class EmojiCount(discord.ext.commands.Cog, CogBase):
                 # BOTに権限がないケースはログを出力して続行
                 logger.warning(f"exception={e}, channel={channel}")
             else:
-                for message in messages:
-                    for counter in counters:
-                        # メッセージ内に使われているかのカウント
-                        if counter.emoji.name in message.content:
-                            # BOTを弾く
-                            if self._bot or not message.author.bot:
-                                counter.increment(_EmojiCountType.MESSAGE_CONTENT)
-                        # リアクションに使われているかのカウント
-                        for reaction in message.reactions:
-                            if not isinstance(reaction.emoji, discord.Emoji):
-                                continue
-                            if reaction.emoji.id != counter.emoji.id:
-                                continue
-                            # BOTを弾く
-                            if not self._bot and all(
-                                [user.bot async for user in reaction.users()]
-                            ):
-                                continue
-                            counter.increment(_EmojiCountType.MESSAGE_REACTION)
+                counters = await self.count_emojis(counters, messages)
 
         # ソートした上で要求された順位までの要素数に切り取る
         rank = max(1, min(self._rank, len(ctx.guild.emojis)))
-        reverse = True if self._order == _SortOrder.DESCENDING else False
+        reverse = _SortOrder.reverse(self._order)
         sorted_counters = sorted(
             counters, key=lambda c: c.total_count, reverse=reverse
         )[0:rank]
@@ -131,7 +119,7 @@ class EmojiCount(discord.ext.commands.Cog, CogBase):
             title = f"カスタム絵文字 利用ランキング ベスト{rank}"
         else:
             title = f"カスタム絵文字 利用ランキング ワースト{rank}"
-        before_str, after_str = utils.discord.get_before_after_str(
+        before_str, after_str = get_before_after_str(
             self._before, self._after, ctx.guild, _Constant.JST
         )
         description = f"{after_str} ~ {before_str}"
@@ -149,6 +137,30 @@ class EmojiCount(discord.ext.commands.Cog, CogBase):
         await ctx.send(embed=embed)
         await ctx.send(" ".join([str(counter.emoji) for counter in sorted_counters]))
 
+    async def count_emojis(
+        self, counters: List[_EmojiCounter], messages: List[discord.Message]
+    ) -> List[_EmojiCounter]:
+        for message in messages:
+            for counter in counters:
+                # メッセージ内に使われているかのカウント
+                if counter.emoji.name in message.content:
+                    # BOTを弾く
+                    if self._contains_bot or not message.author.bot:
+                        counter.increment(_EmojiCountType.MESSAGE_CONTENT)
+                # リアクションに使われているかのカウント
+                for reaction in message.reactions:
+                    if not isinstance(reaction.emoji, discord.Emoji):
+                        continue
+                    if reaction.emoji.id != counter.emoji.id:
+                        continue
+                    # BOTを弾く
+                    if not self._contains_bot and all(
+                        [user.bot async for user in reaction.users()]
+                    ):
+                        continue
+                    counter.increment(_EmojiCountType.MESSAGE_REACTION)
+        return counters
 
-def setup(bot):
+
+def setup(bot: Bot):
     return bot.add_cog(EmojiCount(bot))
