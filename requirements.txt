@@ -1,5 +1,6 @@
 discord[voice]~=1.7.3
-discord-ext-commands-coghelper==0.0.5
+discord-ext-commands-coghelper
+discord-emoji-ranking
 dispander
 gspread~=5.3.2
 google-api-python-client
