@@ -6,8 +6,6 @@ import discord
 import discord.abc
 from discord_ext_commands_coghelper import try_strftime
 
-from cogs.constant import Constant
-
 
 async def find_text_channel(
     guild: discord.Guild, message_id: int
