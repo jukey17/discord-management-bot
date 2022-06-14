@@ -8,7 +8,7 @@ from discord.ext.commands import Context, Bot, Cog, command
 from discord_ext_commands_coghelper import (
     CogHelper,
     get_list,
-    get_before_after,
+    get_before_after_fmts,
     get_bool,
     to_utc_naive,
 )
@@ -70,8 +70,8 @@ class EmojiCount(Cog, CogHelper):
 
     def _parse_args(self, ctx: Context, args: Dict[str, str]):
         self._channel_ids = get_list(args, "channel", ",", lambda value: int(value), [])
-        self._before, self._after = get_before_after(
-            ctx, args, _Constant.DATE_FORMAT, _Constant.JST
+        self._before, self._after = get_before_after_fmts(
+            ctx, args, _Constant.DATE_FORMATS, _Constant.JST
         )
         self._order = _SortOrder.parse(args.get("order", ""))
         self._rank = int(args.get("rank", _Constant.DEFAULT_RANK))
@@ -121,7 +121,7 @@ class EmojiCount(Cog, CogHelper):
         else:
             title = f"カスタム絵文字 利用ランキング ワースト{rank}"
         before_str, after_str = get_before_after_str(
-            self._before, self._after, ctx.guild, _Constant.JST
+            self._before, self._after, ctx.guild, _Constant.JST, *_Constant.DATE_FORMATS
         )
         description = f"{after_str} ~ {before_str}"
         embed = discord.Embed(title=title, description=description)

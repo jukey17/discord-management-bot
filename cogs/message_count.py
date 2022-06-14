@@ -14,7 +14,7 @@ from discord_ext_commands_coghelper import (
     ChannelNotFoundError,
     ChannelTypeError,
     get_list,
-    get_before_after,
+    get_before_after_fmts,
     to_utc_naive,
 )
 
@@ -74,15 +74,15 @@ class MessageCount(Cog, CogHelper):
             raise ArgumentError(ctx, channel="チャンネルIDを一つ以上必ず設定してください")
 
         self._channel_ids = get_list(args, "channel", ",", lambda value: int(value), [])
-        self._before, self._after = get_before_after(
-            ctx, args, Constant.DATE_FORMAT, Constant.JST
+        self._before, self._after = get_before_after_fmts(
+            ctx, args, Constant.DATE_FORMATS, Constant.JST
         )
 
     async def _execute(self, ctx: Context):
         before = to_utc_naive(self._before)
         after = to_utc_naive(self._after)
         before_str, after_str = get_before_after_str(
-            self._before, self._after, ctx.guild, Constant.JST
+            self._before, self._after, ctx.guild, Constant.JST, *Constant.DATE_FORMATS
         )
 
         result_map = {}

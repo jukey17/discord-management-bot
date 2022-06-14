@@ -13,7 +13,7 @@ from discord_ext_commands_coghelper import (
     ArgumentError,
     ChannelNotFoundError,
     ChannelTypeError,
-    get_before_after,
+    get_before_after_fmts,
     to_utc_naive,
 )
 
@@ -40,8 +40,8 @@ class DownloadMessageJson(discord.ext.commands.Cog, CogHelper):
             raise ArgumentError(ctx, channel="チャンネルIDを必ず設定してください")
 
         self._channel_id = int(args.get("channel", None))
-        self._before, self._after = get_before_after(
-            ctx, args, Constant.DATE_FORMAT, Constant.JST
+        self._before, self._after = get_before_after_fmts(
+            ctx, args, Constant.DATE_FORMATS, Constant.JST
         )
 
     async def _execute(self, ctx: Context):
@@ -54,7 +54,7 @@ class DownloadMessageJson(discord.ext.commands.Cog, CogHelper):
         before = to_utc_naive(self._before)
         after = to_utc_naive(self._after)
         before_str, after_str = get_before_after_str(
-            self._before, self._after, ctx.guild, Constant.JST
+            self._before, self._after, ctx.guild, Constant.JST, *Constant.DATE_FORMATS
         )
 
         logger.debug(
