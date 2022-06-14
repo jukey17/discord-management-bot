@@ -4,6 +4,7 @@ from typing import Optional, Union, List
 
 import discord
 import discord.abc
+from discord_ext_commands_coghelper import try_strftime
 
 from cogs.constant import Constant
 
@@ -73,18 +74,14 @@ def get_before_after_str(
     after: datetime.datetime,
     guild: discord.Guild,
     tz: datetime.timezone,
+    *fmts: str
 ) -> (str, str):
     if before is None:
-        before_str = datetime.datetime.now(tz=tz).strftime(Constant.DATE_FORMAT)
-    else:
-        before_str = before.strftime(Constant.DATE_FORMAT)
+        before = datetime.datetime.now(tz=tz)
     if after is None:
-        after_str = (
-            guild.created_at.replace(tzinfo=datetime.timezone.utc)
-            .astimezone(Constant.JST)
-            .strftime(Constant.DATE_FORMAT)
-        )
-    else:
-        after_str = after.replace(tzinfo=tz).strftime(Constant.DATE_FORMAT)
+        after = guild.created_at.replace(tzinfo=datetime.timezone.utc).astimezone(tz)
+
+    before_str = try_strftime(before, *fmts)
+    after_str = try_strftime(after, *fmts)
 
     return before_str, after_str

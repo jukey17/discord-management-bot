@@ -13,7 +13,7 @@ from discord_ext_commands_coghelper import (
     ArgumentError,
     ExecutionError,
     get_list,
-    get_before_after,
+    get_before_after_fmts,
     get_bool,
 )
 
@@ -51,8 +51,8 @@ class LoggingVoiceStates(Cog, CogHelper):
         self._count = args.get("count", None)
         self._user_ids = get_list(args, "user", ",", lambda value: int(value), [])
         self._channel_ids = get_list(args, "channel", ",", lambda value: int(value), [])
-        self._before, self._after = get_before_after(
-            ctx, args, Constant.DATE_FORMAT, Constant.JST
+        self._before, self._after = get_before_after_fmts(
+            ctx, args, Constant.DATE_FORMATS, Constant.JST
         )
         self._minimum = get_bool(args, "minimum", True)
 
@@ -130,7 +130,7 @@ class LoggingVoiceStates(Cog, CogHelper):
                 )
 
         before_str, after_str = get_before_after_str(
-            self._before, self._after, ctx.guild, Constant.JST
+            self._before, self._after, ctx.guild, Constant.JST, *Constant.DATE_FORMATS
         )
 
         filename = f"logging_voice_states_count_{self._count}_{after_str}_{before_str}.json".replace(
