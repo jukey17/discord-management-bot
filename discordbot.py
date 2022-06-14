@@ -13,9 +13,9 @@ import utils.constant
 class Constant(utils.constant.Constant):
     EXTENSIONS = [
         "dispander",
+        "discord_emoji_ranking",
         "cogs.get_system_info",
         "cogs.message_count",
-        "cogs.emoji_count",
         "cogs.download_messages_json",
         "cogs.mention_to_reaction_users",
         "cogs.logging_voice_states",
@@ -48,6 +48,7 @@ class DiscordBot(commands.Bot):
             self.load_extension(cog)
         init_logger(__name__)
         init_logger("cogs")
+        init_logger("discord_emoji_ranking")
         init_logger("discord_ext_commands_coghelper")
         self._logger = logging.getLogger(__name__)
 
