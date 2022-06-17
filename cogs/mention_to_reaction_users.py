@@ -1,4 +1,5 @@
 import contextlib
+import copy
 import io
 import json
 import logging
@@ -14,15 +15,58 @@ from discord_ext_commands_coghelper import (
     ExecutionError,
     ChannelNotFoundError,
     UserNotFoundError,
-    get_bool,
 )
+from discord_ext_commands_coghelper.utils import get_bool, find_text_channel
+
 from gspread import Worksheet
 
-from utils.discord import find_text_channel, find_reaction_users, find_no_reaction_users
 from utils.gspread_client import GSpreadClient, get_or_add_worksheet
 from utils.misc import parse_json
 
 logger = logging.getLogger(__name__)
+
+
+async def _find_no_reaction_users(
+    message: discord.Message, candidates: List[Union[discord.Member, discord.User]]
+) -> List[Union[discord.Member, discord.User]]:
+    result = copy.copy(candidates)
+    for reaction in message.reactions:
+        users = [user async for user in reaction.users()]
+        for candidate in candidates:
+            if candidate not in result:
+                continue
+            for user in users:
+                if candidate.id == user.id:
+                    result.remove(candidate)
+
+    return result
+
+
+async def _find_reaction_users(
+    message: discord.Message, emoji: str
+) -> List[Union[discord.Member, discord.User]]:
+    target = None
+    for reaction in message.reactions:
+        if isinstance(reaction.emoji, discord.Emoji):
+            # カスタム絵文字は名前が含まれているか見る ※:{name}:の形式なはずなので
+            if reaction.emoji.name not in emoji:
+                continue
+        if isinstance(reaction.emoji, discord.PartialEmoji):
+            # Partial絵文字も名前が含まれているか見る
+            if reaction.emoji.id is None:
+                continue
+            if reaction.emoji.name not in emoji:
+                continue
+        if isinstance(reaction.emoji, str):
+            # Unicode絵文字は完全一致でOK
+            if reaction.emoji != emoji:
+                continue
+        target = reaction
+        break
+
+    if target is None:
+        return []
+    return [user async for user in target.users()]
 
 
 class _NormalCommand:
@@ -69,7 +113,7 @@ class _NormalCommand:
             logger.debug("find no reaction users")
             title = "リアクションしていない"
             targets = self._filter_users(channel.members, message, ignore_ids)
-            result = await find_no_reaction_users(message, targets)
+            result = await _find_no_reaction_users(message, targets)
         elif self._reaction_emoji.lower() == "all":
             # リアクションしている全てのユーザーを探す
             logger.debug("find all reaction users")
@@ -82,7 +126,7 @@ class _NormalCommand:
             # 指定の絵文字でリアクションしているユーザーを探す
             logger.debug(f"find reaction users: emoji={self._reaction_emoji}")
             title = f"{self._reaction_emoji} をリアクションしている"
-            targets = await find_reaction_users(message, self._reaction_emoji)
+            targets = await _find_reaction_users(message, self._reaction_emoji)
             result = self._filter_users(targets, message, ignore_ids)
 
         logger.debug("send result")

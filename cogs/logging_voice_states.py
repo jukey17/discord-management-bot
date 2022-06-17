@@ -12,13 +12,15 @@ from discord_ext_commands_coghelper import (
     CogHelper,
     ArgumentError,
     ExecutionError,
+)
+from discord_ext_commands_coghelper.utils import (
     get_list,
     get_before_after_fmts,
     get_bool,
+    get_corrected_before_after_str,
 )
 
 from cogs.constant import Constant
-from utils.discord import get_before_after_str
 from utils.gspread_client import (
     GSpreadClient,
     get_or_add_worksheet,
@@ -129,7 +131,7 @@ class LoggingVoiceStates(Cog, CogHelper):
                     }
                 )
 
-        before_str, after_str = get_before_after_str(
+        before_str, after_str = get_corrected_before_after_str(
             self._before, self._after, ctx.guild, Constant.JST, *Constant.DATE_FORMATS
         )
 
