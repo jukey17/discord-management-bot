@@ -106,18 +106,9 @@
 | after   | この日付より後のメッセージを対象とする        | None(現在時刻まで)    | optional |
 
 
-### `/emoji_count channel={channel_id...} before={YYYY-mm-dd} after={YYYY-mm-dd} order={ascending|descending} rank={1-25} bot={True|False}`
+### `/emoji_ranking channel={channel_id...} before={YYYY-mm-dd} after={YYYY-mm-dd} order={ascending|descending} rank={1-25} bot={True|False}`
 
-指定のチャンネルでEmojiが何回使われたのかをランキング形式で表示します
-
-| param   | description                                     | default         | required |
-|---------|-------------------------------------------------|-----------------|----------|
-| channel | 対象のチャンネルのID(`,` 区切りで複数指定可)                      | None(全チャンネル対象)  | optional |
-| before  | この日付より前のメッセージを対象とする                             | None(サーバー開始時から) | optional |
-| after   | この日付より後のメッセージを対象とする                             | None(現在時刻まで)    | optional |
-| order   | ランキングを昇順(ascending)にするか降順(descending)にするか       | ascending(昇順)   | optional |
-| rank    | 何位まで表示するか(Discord.Embed.Fieldの表示最大数までしか表示できません) | 10              | optional |
-| bot     | BOTが利用したEmojiをカウントするかどうか                        | False           | optional |
+see also, https://github.com/jukey17/discord-emoji-ranking/
 
 ### `/download_messages_json channel={channel_id} before={YYYY-mm-dd} after={YYYY-mm-dd}`
 
