@@ -13,13 +13,15 @@ from discord_ext_commands_coghelper import (
     ArgumentError,
     ChannelNotFoundError,
     ChannelTypeError,
+)
+from discord_ext_commands_coghelper.utils import (
+    to_utc_naive,
     get_list,
     get_before_after_fmts,
-    to_utc_naive,
+    get_corrected_before_after_str,
 )
 
 from cogs.constant import Constant
-from utils.discord import get_before_after_str
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +83,7 @@ class MessageCount(Cog, CogHelper):
     async def _execute(self, ctx: Context):
         before = to_utc_naive(self._before)
         after = to_utc_naive(self._after)
-        before_str, after_str = get_before_after_str(
+        before_str, after_str = get_corrected_before_after_str(
             self._before, self._after, ctx.guild, Constant.JST, *Constant.DATE_FORMATS
         )
 

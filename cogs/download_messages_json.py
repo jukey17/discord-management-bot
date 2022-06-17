@@ -13,12 +13,14 @@ from discord_ext_commands_coghelper import (
     ArgumentError,
     ChannelNotFoundError,
     ChannelTypeError,
-    get_before_after_fmts,
+)
+from discord_ext_commands_coghelper.utils import (
     to_utc_naive,
+    get_before_after_fmts,
+    get_corrected_before_after_str,
 )
 
 from cogs.constant import Constant
-from utils.discord import get_before_after_str
 from utils.misc import parse_json
 
 logger = logging.getLogger(__name__)
@@ -53,7 +55,7 @@ class DownloadMessageJson(discord.ext.commands.Cog, CogHelper):
 
         before = to_utc_naive(self._before)
         after = to_utc_naive(self._after)
-        before_str, after_str = get_before_after_str(
+        before_str, after_str = get_corrected_before_after_str(
             self._before, self._after, ctx.guild, Constant.JST, *Constant.DATE_FORMATS
         )
 

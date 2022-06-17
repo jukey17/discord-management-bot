@@ -11,8 +11,9 @@ from discord_ext_commands_coghelper import (
     ArgumentError,
     ExecutionError,
     ChannelNotFoundError,
-    get_bool,
 )
+from discord_ext_commands_coghelper.utils import get_bool
+
 from gspread.worksheet import Worksheet
 
 from cogs.constant import Constant
