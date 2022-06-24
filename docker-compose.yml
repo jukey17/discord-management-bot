@@ -1,0 +1,12 @@
+version: '3'
+services:
+  discordbot:
+    restart: always
+    build: .
+    container_name: 'discordbot'
+    working_dir: '/root/'
+    tty: true
+    env_file:
+      - .env
+    volumes:
+      - .:/root/discord-management-bot
