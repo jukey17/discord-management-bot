@@ -43,7 +43,7 @@ class DownloadMessageJson(discord.ext.commands.Cog, CogHelper):
 
         self._channel_id = int(args.get("channel", None))
         self._before, self._after = get_before_after_fmts(
-            ctx, args, Constant.DATE_FORMATS, Constant.JST
+            ctx, args, *Constant.DATE_FORMATS, tz=Constant.JST
         )
 
     async def _execute(self, ctx: Context):

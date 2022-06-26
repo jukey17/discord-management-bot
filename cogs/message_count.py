@@ -77,7 +77,7 @@ class MessageCount(Cog, CogHelper):
 
         self._channel_ids = get_list(args, "channel", ",", lambda value: int(value), [])
         self._before, self._after = get_before_after_fmts(
-            ctx, args, Constant.DATE_FORMATS, Constant.JST
+            ctx, args, *Constant.DATE_FORMATS, tz=Constant.JST
         )
 
     async def _execute(self, ctx: Context):
