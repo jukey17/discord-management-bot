@@ -54,7 +54,7 @@ class LoggingVoiceStates(Cog, CogHelper):
         self._user_ids = get_list(args, "user", ",", lambda value: int(value), [])
         self._channel_ids = get_list(args, "channel", ",", lambda value: int(value), [])
         self._before, self._after = get_before_after_fmts(
-            ctx, args, Constant.DATE_FORMATS, Constant.JST
+            ctx, args, *Constant.DATE_FORMATS, tz=Constant.JST
         )
         self._minimum = get_bool(args, "minimum", True)
 
