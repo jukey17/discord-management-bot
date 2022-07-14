@@ -42,6 +42,8 @@
 
   ```/mention_to_reaction_users message=XXXX reaction=All expand_message=True```
 
+---
+
 ### `/mention_to_reaction_users manage {mode} {options}`
 
 `mention_to_reaction_users` コマンドの引数に`manage`を入れると管理モードになります
@@ -83,6 +85,8 @@
 
   ```/mention_to_reaction_users manage ignore_list remove=all```
 
+----
+
 ### `/message_count channel={channel_id...} before={YYYY-mm-dd} after={YYYY-mm-dd}`
 
 指定のチャンネルでサーバー内の各ユーザーが何回発言したのかをまとめてcsv形式にして返します
@@ -102,6 +106,8 @@
 - XXXXとYYYYのチャンネルにおいて2022/01/01~2022/01/31の期間を対象にサーバー内の各ユーザーが何回発言したのかをcsv形式にして取得する
 
   ```/message_count channel=XXXX,YYYY after=2022/01/01 before=2022/01/31```
+
+----
 
 ### `/emoji_ranking channel={channel_id...} before={YYYY-mm-dd} after={YYYY-mm-dd} order={ascending|descending} rank={1-25} bot={True|False}`
 
@@ -132,6 +138,8 @@
 
 see also, https://github.com/jukey17/discord-emoji-ranking/
 
+----
+
 ### `/download_messages_json channel={channel_id} before={YYYY-mm-dd} after={YYYY-mm-dd}`
 
 指定のチャンネルのメッセージをjsonとして出力します
@@ -141,6 +149,8 @@ see also, https://github.com/jukey17/discord-emoji-ranking/
 | channel | 対象のチャンネルのID         | -               | must     |
 | before  | この日付より前のメッセージを対象とする | None(サーバー開始時から) | optional |
 | after   | この日付より後のメッセージを対象とする | None(現在時刻まで)    | optional |
+
+----
 
 ### `/logging_voice_states count={state} user={user_id...} channel={channel_id...} before={YYYY-MM-DD} after={YYYY-MM-DD} minimum={True|False}`
 
@@ -176,6 +186,8 @@ BOTを起動すると `discord.py` の `on_voice_state_update` イベントを�
 | afk_in       | AFKチャンネルに入った    |
 | afk_out      | AFKチャンネルから出た    |
 
+----
+
 ### `/notify_when_sent {mode} channel={channel_id}`
 
 指定のチャンネルにメッセージが送信されたときにDMで通知を行います
@@ -194,6 +206,8 @@ BOTを起動すると `discord.py` の `on_voice_state_update` イベントを�
 | enable   | 指定のチャンネルの通知設定を有効します          |
 | disable  | 指定のチャンネルの通知設定を無効します          |
 | list     | 現在自身が設定してる通知先のチャンネルの一覧を取得します |
+
+----
 
 ### `/get_system_info`
 
