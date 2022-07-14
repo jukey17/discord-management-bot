@@ -2,29 +2,15 @@
 
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
 
-## How to use
+## Installation
 
-1. Discord BOTアカウントを作成する
-2. Herokuのアカウントとアプリを作成する
-3. GCPのプロジェクトを作り、スプレッドシートにアクセスできるサービスアカウントを作成する
-4. 無視リスト用、ボイスチャットログ用のスプレッドシートを用意する
-5. HerokuのConfig Varsに後述の環境変数を設定する　
-6. HerokuでDeployして起動！
+準備中
 
-## Environment Variables
+## Quick start
 
-利用するためには下記の環境変数の設定が必要です
+準備中
 
-| name                                   | description                          |
-|----------------------------------------|--------------------------------------|
-| DISCORD_BOT_TOKEN                      | Discord BOTのトークン                     |
-| GOOGLE_CREDENTIALS_FILE                | GCPのサービスアカウント用の認証jsonファイルのパス         |
-| IGNORE_LIST_SHEET_ID                   | 無視リスト用のスプレッドシートのID                   |
-| LOGGING_VOICE_STATES_SHEET_ID          | ボイスチャット状態ログ用のスプレッドシートのID             |
-| LOGGING_VOICE_STATES_WHEN_DATE_CHANGED | ボイスチャット状態ログ用の日付が切り替わるタイミング(HH:MM:SS) |
-
-
-## Feature
+## Features
 
 ### `/mention_to_reaction_users message={message_id} reaction={emoji} ignore_list={True|False} expand_message={True|False}`
 
@@ -41,63 +27,65 @@
 
 #### examples
 
-- {message_id}のメッセージに😀の絵文字をリアクションしたユーザーにメンションを飛ばす(無視リストを使う)
+- XXXXのメッセージに😀の絵文字をリアクションしたユーザーにメンションを飛ばす(無視リストを使う)
 
-    ```/mention_to_reaction_users message={message_id} reaction=😀```
-- {message_id}のメッセージに:custom_emoji:のカスタム絵文字をリアクションしたユーザーにメンションを飛ばす(無視リストは使わない)
+  ```/mention_to_reaction_users message=XXXX reaction=😀```
+- XXXXのメッセージに:custom_emoji:のカスタム絵文字をリアクションしたユーザーにメンションを飛ばす(無視リストは使わない)
 
-    ```/mention_to_reaction_users message={message_id} reaction=:custom_emoji: ignore_list=False```
+  ```/mention_to_reaction_users message=XXXX reaction=:custom_emoji: ignore_list=False```
 
-- {message_id}のメッセージにリアクションをしていないユーザー全てにメンションを飛ばす(無視リストを使う)
+- XXXXのメッセージにリアクションをしていないユーザー全てにメンションを飛ばす(無視リストを使う)
 
-    ```/mention_to_reaction_users message={message_id} reaction=None```
+  ```/mention_to_reaction_users message=XXXX reaction=None```
 
-- {message_id}のメッセージにリアクションをしているユーザー全てにメンションを飛ばす(無視リストを使う)
+- XXXXのメッセージにリアクションをしているユーザー全てにメンションを飛ばしてメッセージを展開する(無視リストを使う)
 
-    ```/mention_to_reaction_users message={message_id} reaction=All```
+  ```/mention_to_reaction_users message=XXXX reaction=All expand_message=True```
 
-### `/mention_to_reaction_users manage ignore_list show|download|append={user_id}}|remove={user_id}`
+### `/mention_to_reaction_users manage {mode} {options}`
 
-コマンドの引数に`manage`を入れると管理モードになります
+`mention_to_reaction_users` コマンドの引数に`manage`を入れると管理モードになります
 
-| param       | description                          | default | required |
-|-------------|--------------------------------------|---------|----------|
-| manage      | 管理モードを利用したい場合に指定します                  | パラメータなし | must     |
-| ignore_list | 無視リストの管理を行います                        | パラメータなし | optional |
-| show        | 無視リストに登録されているユーザー一覧を返信します            | パラメータなし | optional |
-| download    | 無視リストに登録されているユーザー一覧をjsonファイルとして投稿します | パラメータなし | optional |
-| append      | 無視リストにユーザーを追加します                     | -       | optional |
-| remove      | 無視リストからユーザーを除外します                    | -       | optional |
+#### mode 一覧
+
+| mode        | description   |
+|-------------|---------------|
+| ignore_list | 無視リストの管理を行います |
+
+#### ignore_list options 一覧
+
+| options  | description                          | params    | required |
+|----------|--------------------------------------|-----------|----------|
+| show     | 無視リストに登録されているユーザー一覧を返信します            | パラメータなし   | -        |
+| download | 無視リストに登録されているユーザー一覧をjsonファイルとして投稿します | パラメータなし   | -        |
+| append   | 無視リストにユーザーを追加します                     | {user_id} | must     |
+| remove   | 無視リストからユーザーを除外します                    | {user_id} | must     |
 
 #### examples
 
 - 現在無視リストに登録されているユーザー一覧を表示する
-  
-    ```/mention_to_reaction_users manage ignore_list show```
+
+  ```/mention_to_reaction_users manage ignore_list show```
 
 - 現在無視リストに登録されているユーザー一覧をjson形式でダウンロードする
-  
-    ```/mention_to_reaction_users manage ignore_list download```
 
-- 新しく{user_id}を無視リストに追加する
-  
-    ```/mention_to_reaction_users manage ignore_list append={user_id}```
+  ```/mention_to_reaction_users manage ignore_list download```
 
+- 新しくXXXXを無視リストに追加する
 
-- 登録されている{user_id}を無視リストから除外する
-  
-    ```/mention_to_reaction_users manage ignore_list remove={user_id}```
-- 
+  ```/mention_to_reaction_users manage ignore_list append=XXXX```
+
+- 登録されているXXXXを無視リストから除外する
+
+  ```/mention_to_reaction_users manage ignore_list remove=XXXX```
+
 - 無視リストに登録されているユーザーを全解除する
-  
-    ```/mention_to_reaction_users manage ignore_list remove=all```
 
-
-
+  ```/mention_to_reaction_users manage ignore_list remove=all```
 
 ### `/message_count channel={channel_id...} before={YYYY-mm-dd} after={YYYY-mm-dd}`
 
-指定のチャンネルで誰が何回発言したのかをまとめてcsv形式にして返します
+指定のチャンネルでサーバー内の各ユーザーが何回発言したのかをまとめてcsv形式にして返します
 
 | param   | description                | default         | required |
 |---------|----------------------------|-----------------|----------|
@@ -105,8 +93,42 @@
 | before  | この日付より前のメッセージを対象とする        | None(サーバー開始時から) | optional |
 | after   | この日付より後のメッセージを対象とする        | None(現在時刻まで)    | optional |
 
+#### examples
+
+- XXXXのチャンネルの全期間でサーバー内の各ユーザーが何回発言したのかをcsv形式にして取得する
+
+  ```/message_count channel=XXXX```
+
+- XXXXとYYYYのチャンネルにおいて2022/01/01~2022/01/31の期間を対象にサーバー内の各ユーザーが何回発言したのかをcsv形式にして取得する
+
+  ```/message_count channel=XXXX,YYYY after=2022/01/01 before=2022/01/31```
 
 ### `/emoji_ranking channel={channel_id...} before={YYYY-mm-dd} after={YYYY-mm-dd} order={ascending|descending} rank={1-25} bot={True|False}`
+
+指定のチャンネルでカスタム絵文字が何回使われたかをランキング形式にして返します
+
+| param   | description                | default         | required |
+|---------|----------------------------|-----------------|----------|
+| channel | 対象のチャンネルのID(`,` 区切りで複数指定可) | None(全てのチャンネル)  | optional |
+| before  | この日付より前のメッセージを対象とする        | None(サーバー開始時から) | optional |
+| after   | この日付より後のメッセージを対象とする        | None(現在時刻まで)    | optional |
+| order   | ランキングのソート方法 (昇順または降順)      | ascending       | optional |
+| rank    | 表示するランキング数 (1-25)          | 10              | optional |
+| bot     | BOTによるメッセージとリアクションを含むかどうか  | False           | optional |
+
+#### examples
+
+- 全てのチャンネルの全期間におけるカスタム絵文字の使用数ランキングワースト10を表示する
+
+  ```/emoji_ranking```
+
+- XXXXのチャンネルの全期間におけるカスタム絵文字の使用数ランキングTOP10を表示する
+
+  ```/emoji_ranking channel=XXXX order=descending```
+
+- XXXXとYYYYとZZZZのチャンネルにおいて2022/01/01~2022/01/31の期間を対象としたカスタム絵文字の使用数ランキングTOP5を表示する(BOTによる使用も含む)
+
+  ```/emoji_ranking channel=XXXX,YYYY,ZZZZ, order=descending rank=5 bot```
 
 see also, https://github.com/jukey17/discord-emoji-ranking/
 
@@ -122,10 +144,10 @@ see also, https://github.com/jukey17/discord-emoji-ranking/
 
 ### `/logging_voice_states count={state} user={user_id...} channel={channel_id...} before={YYYY-MM-DD} after={YYYY-MM-DD} minimum={True|False}`
 
-BOTを起動すると `discord.py` の `on_voice_state_update` イベントを利用して `LOGGING_VOICE_STATES_SHEET_ID` で指定したスプレッドシートに招待したDiscordサーバーのボイスチャットを監視してログを記録するようになります
+BOTを起動すると `discord.py` の `on_voice_state_update` イベントを利用して `LOGGING_VOICE_STATES_SHEET_ID`
+で指定したスプレッドシートに招待したDiscordサーバーのボイスチャットを監視してログを記録するようになります
 
 このコマンドでは上記で記録したログからボイスチャットのユーザー毎の状態ログを取得します
-
 
 | param   | description                | default            | required |
 |---------|----------------------------|--------------------|----------|
@@ -136,7 +158,7 @@ BOTを起動すると `discord.py` の `on_voice_state_update` イベントを�
 | after   | この日付より後のメッセージを対象とする        | None(現在時刻まで)       | optional |
 | minimum | カウントが0の要素を省略します            | True               | optional |
 
-#### 状態一覧
+#### state 一覧
 
 | state        | description     |
 |--------------|-----------------|
@@ -158,12 +180,12 @@ BOTを起動すると `discord.py` の `on_voice_state_update` イベントを�
 
 指定のチャンネルにメッセージが送信されたときにDMで通知を行います
 
-| param   | description         | default | required             |
-|---------|---------------------|---------|----------------------|
-| mode    | 利用するモードを指定します※詳細は後述 | -       | must                 |
-| channel | 対象のチャンネルのID         | -       | must(モードがlistの場合は不要) |
+| param   | description   | default | required             |
+|---------|---------------|---------|----------------------|
+| mode    | 利用するモードを指定します | -       | must                 |
+| channel | 対象のチャンネルのID   | -       | must(モードがlistの場合は不要) |
 
-#### モード一覧
+#### mode 一覧
 
 | mode     | description                  |
 |----------|------------------------------|
