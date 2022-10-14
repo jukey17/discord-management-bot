@@ -1,4 +1,4 @@
-discord[voice]~=1.7.3
+discord.py==1.7.3
 discord-ext-commands-coghelper~=0.0.6
 discord-emoji-ranking~=0.1.1
 dispander
