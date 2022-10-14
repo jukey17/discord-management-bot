@@ -43,7 +43,6 @@ class DiscordBot(commands.Bot):
         intents.members = True
         intents.messages = True
         intents.reactions = True
-        intents.message_content = True
         intents.voice_states = True
         super().__init__(command_prefix="/", intents=intents)
 
