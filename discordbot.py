@@ -39,7 +39,7 @@ def init_logger(name: str):
 
 class DiscordBot(commands.Bot):
     def __init__(self):
-        intents = discord.Intents.all()
+        intents = discord.Intents.default()
         intents.members = True
         intents.messages = True
         intents.reactions = True
