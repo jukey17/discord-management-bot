@@ -11,6 +11,8 @@ ENV TZ JST-9
 ENV TERM xterm
 ENV WORK_DIR /root/discord-management-bot
 
+RUN apt-get -y install screen
+
 RUN mkdir -p $WORK_DIR
 COPY requirements.txt $WORK_DIR
 WORKDIR $WORK_DIR
